@@ -1,0 +1,1 @@
+cape_enable=bone_capemgr.enable_partno=BB-SPIDEV0

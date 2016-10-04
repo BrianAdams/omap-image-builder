@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 time=$(date +%Y-%m-%d)
-mirror_dir="/var/www/html/rcn-ee.net/rootfs/bb.org/release"
+mirror_dir="/var/www/html/rcn-ee.us/rootfs/bb.org/release"
 DIR="$PWD"
 
 git pull --no-edit https://github.com/beagleboard/image-builder master
@@ -16,35 +16,37 @@ fi
 ./RootStock-NG.sh -c bb.org-debian-wheezy-lxde-4gb
 ./RootStock-NG.sh -c bb.org-debian-wheezy-console
 
-debian_wheezy_lxde_2gb="debian-7.8-lxde-armhf-${time}"
-debian_wheezy_lxde_4gb="debian-7.8-lxde-4gb-armhf-${time}"
-debian_wheezy_console="debian-7.8-console-armhf-${time}"
+debian_wheezy_lxde_2gb="debian-7.10-lxde-armhf-${time}"
+debian_wheezy_lxde_4gb="debian-7.10-lxde-4gb-armhf-${time}"
+debian_wheezy_console="debian-7.10-console-armhf-${time}"
 
-archive="xz -z -8 -v"
+archive="xz -z -8"
 
-beaglebone="--dtb beaglebone --beagleboard.org-production --boot_label BEAGLEBONE \
---rootfs_label rootfs --bbb-old-bootloader-in-emmc --hostname beaglebone"
+beaglebone="--dtb beaglebone --bbb-old-bootloader-in-emmc --hostname beaglebone"
 
-bb_blank_flasher="--dtb bbb-blank-eeprom --boot_label BEAGLEBONE \
---rootfs_label rootfs --bbb-old-bootloader-in-emmc --hostname beaglebone"
+bb_blank_flasher="--dtb bbb-blank-eeprom --bbb-old-bootloader-in-emmc \
+--hostname beaglebone"
 
-beaglebone_console="--dtb beaglebone --boot_label BEAGLEBONE \
---bbb-old-bootloader-in-emmc --hostname beaglebone"
+beaglebone_console="--dtb beaglebone --bbb-old-bootloader-in-emmc \
+--hostname beaglebone"
 
-bb_blank_flasher_console="--dtb bbb-blank-eeprom --boot_label BEAGLEBONE \
---bbb-old-bootloader-in-emmc --hostname beaglebone"
+bb_blank_flasher_console="--dtb bbb-blank-eeprom --bbb-old-bootloader-in-emmc \
+--hostname beaglebone"
 
 cat > ${DIR}/deploy/gift_wrap_final_images.sh <<-__EOF__
 #!/bin/bash
 
 copy_base_rootfs_to_mirror () {
-        if [ -d ${mirror_dir} ] ; then
+        if [ -d ${mirror_dir}/ ] ; then
                 if [ ! -d ${mirror_dir}/${time}/\${blend}/ ] ; then
                         mkdir -p ${mirror_dir}/${time}/\${blend}/ || true
                 fi
                 if [ -d ${mirror_dir}/${time}/\${blend}/ ] ; then
-                        if [ -f \${base_rootfs}.tar.xz ] ; then
-                                cp -v \${base_rootfs}.tar.xz ${mirror_dir}/${time}/\${blend}/
+                        if [ ! -f ${mirror_dir}/${time}/\${blend}/\${base_rootfs}.tar.xz ] ; then
+                                cp -v \${base_rootfs}.tar ${mirror_dir}/${time}/\${blend}/
+                                cd ${mirror_dir}/${time}/\${blend}/
+                                ${archive} \${base_rootfs}.tar && sha256sum \${base_rootfs}.tar.xz > \${base_rootfs}.tar.xz.sha256sum &
+                                cd -
                         fi
                 fi
         fi
@@ -54,11 +56,9 @@ archive_base_rootfs () {
         if [ -d ./\${base_rootfs} ] ; then
                 rm -rf \${base_rootfs} || true
         fi
-
-        if [ ! -f \${base_rootfs}.tar.xz ] ; then
-                ${archive} \${base_rootfs}.tar
+        if [ -f \${base_rootfs}.tar ] ; then
+                copy_base_rootfs_to_mirror
         fi
-        copy_base_rootfs_to_mirror
 }
 
 extract_base_rootfs () {
@@ -82,8 +82,14 @@ copy_img_to_mirror () {
                         if [ -f \${wfile}.bmap ] ; then
                                 cp -v \${wfile}.bmap ${mirror_dir}/${time}/\${blend}/
                         fi
-                        if [ -f \${wfile}.img.xz ] ; then
-                                cp -v \${wfile}.img.xz ${mirror_dir}/${time}/\${blend}/
+                        if [ ! -f ${mirror_dir}/${time}/\${blend}/\${wfile}.img.zx ] ; then
+                                cp -v \${wfile}.img ${mirror_dir}/${time}/\${blend}/
+                                if [ -f \${wfile}.img.xz.job.txt ] ; then
+                                        cp -v \${wfile}.img.xz.job.txt ${mirror_dir}/${time}/\${blend}/
+                                fi
+                                cd ${mirror_dir}/${time}/\${blend}/
+                                ${archive} \${wfile}.img && sha256sum \${wfile}.img.xz > \${wfile}.img.xz.sha256sum &
+                                cd -
                         fi
                 fi
         fi
@@ -96,9 +102,6 @@ archive_img () {
                                 bmaptool create -o \${wfile}.bmap \${wfile}.img
                         fi
                 fi
-                if [ ! -f \${wfile}.img.xz ] ; then
-                        ${archive} \${wfile}.img
-                fi
                 copy_img_to_mirror
         fi
 }
@@ -107,6 +110,7 @@ generate_img () {
         cd \${base_rootfs}/
         sudo ./setup_sdcard.sh \${options}
         mv *.img ../
+        mv *.job.txt ../
         cd ..
 }
 

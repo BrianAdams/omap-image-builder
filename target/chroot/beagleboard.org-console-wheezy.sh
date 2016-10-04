@@ -23,7 +23,8 @@
 export LC_ALL=C
 
 chromium_release="chromium-33.0.1750.117"
-u_boot_release="v2015.07"
+u_boot_release="v2016.03"
+u_boot_release_x15="v2015.07"
 #bone101_git_sha="50e01966e438ddc43b9177ad4e119e5274a0130d"
 
 #contains: rfs_username, release_date
@@ -164,9 +165,7 @@ setup_desktop () {
 
 	#Disable LXDE's screensaver on autostart
 	if [ -f /etc/xdg/lxsession/LXDE/autostart ] ; then
-		cat /etc/xdg/lxsession/LXDE/autostart | grep -v xscreensaver > /tmp/autostart
-		mv /tmp/autostart /etc/xdg/lxsession/LXDE/autostart
-		rm -rf /tmp/autostart || true
+		sed -i '/xscreensaver/s/^/#/' /etc/xdg/lxsession/LXDE/autostart
 	fi
 
 	#echo "CAPE=cape-bone-proto" >> /etc/default/capemgr
@@ -183,16 +182,50 @@ setup_desktop () {
 			sed -i -e 's:TryExec=lxterminal -l -e bash:TryExec=lxterminal:g' /usr/share/applications/lxterminal.desktop
 		fi
 	fi
+}
 
-	#ti: firewall blocks pastebin.com
-	if [ -f /usr/bin/pastebinit ] ; then
-		wfile="/home/${rfs_username}/.pastebinit.xml"
-		echo "<pastebinit>" > ${wfile}
-		echo "    <pastebin>http://paste.debian.net</pastebin>" >> ${wfile}
-		echo "    <author>anonymous</author>" >> ${wfile}
-		echo "    <jabberid>author@example.net</jabberid>" >> ${wfile}
-		echo "    <format>text</format>" >> ${wfile}
-		echo "</pastebinit>" >> ${wfile}
+install_gem_pkgs () {
+	if [ -f /usr/bin/gem ] ; then
+		echo "Installing gem packages"
+		echo "debug: gem: [`gem --version`]"
+		gem_wheezy="--no-rdoc --no-ri"
+		gem_jessie="--no-document"
+
+		echo "gem: [beaglebone]"
+		gem install beaglebone || true
+
+		echo "gem: [jekyll -v 2.5.3 ${gem_wheezy}]"
+		gem install jekyll -v 2.5.3 ${gem_wheezy} || true
+	fi
+}
+
+install_pip_pkgs () {
+	if [ -f /usr/bin/pip ] ; then
+		echo "Installing pip packages"
+
+		#debian@beaglebone:~$ pip install Adafruit_BBIO
+		#Downloading/unpacking Adafruit-BBIO
+		#  Downloading Adafruit_BBIO-0.0.19.tar.gz
+		#  Running setup.py egg_info for package Adafruit-BBIO
+		#    The required version of distribute (>=0.6.45) is not available,
+		#    and can't be installed while this script is running. Please
+		#    install a more recent version first, using
+		#    'easy_install -U distribute'.
+		#
+		#    (Currently using distribute 0.6.24dev-r0 (/usr/lib/python2.7/dist-packages))
+		#    Complete output from command python setup.py egg_info:
+		#    The required version of distribute (>=0.6.45) is not available,
+		#
+		#and can't be installed while this script is running. Please
+		#
+		#install a more recent version first, using
+		#
+		#'easy_install -U distribute'.
+		#
+		#(Currently using distribute 0.6.24dev-r0 (/usr/lib/python2.7/dist-packages))
+
+		easy_install -U distribute
+		pip install Adafruit_BBIO
 	fi
 }
 
@@ -204,10 +237,15 @@ cleanup_npm_cache () {
 	if [ -d /root/.npm ] ; then
 		rm -rf /root/.npm || true
 	fi
+
+	if [ -f /home/${rfs_username}/.npmrc ] ; then
+		rm -f /home/${rfs_username}/.npmrc || true
+	fi
 }
 
 install_node_pkgs () {
 	if [ -f /usr/bin/npm ] ; then
+		cd /
 		echo "Installing npm packages"
 		echo "debug: node: [`node --version`]"
 		echo "debug: npm: [`npm --version`]"
@@ -248,26 +286,11 @@ install_node_pkgs () {
 		#echo "--------------------------------"
 
 		if [ -f /usr/bin/make ] ; then
-			echo "Installing: [npm install -g npm]"
-			TERM=dump npm install -g npm
-
-			echo "debug: npm: [`/usr/local/bin/npm --version`]"
-
 			echo "Installing: [npm install -g bonescript@0.2.5]"
-			TERM=dumb /usr/local/bin/npm install -g bonescript@0.2.5
+			TERM=dumb npm install -g bonescript@0.2.5
 		fi
 
 		cd /opt/
-
-		#cloud9 installed by cloud9-installer
-		if [ -d /opt/cloud9/build/standalonebuild ] ; then
-			if [ -f /usr/bin/make ] ; then
-				echo "Installing winston"
-				TERM=dumb npm install -g winston --arch=armhf
-			fi
-
-			systemctl enable cloud9.socket || true
-		fi
 
 		cleanup_npm_cache
 		sync
@@ -359,51 +382,6 @@ install_node_pkgs () {
 	fi
 }
 
-install_pip_pkgs () {
-	if [ -f /usr/bin/pip ] ; then
-		echo "Installing pip packages"
-
-		#debian@beaglebone:~$ pip install Adafruit_BBIO
-		#Downloading/unpacking Adafruit-BBIO
-		#  Downloading Adafruit_BBIO-0.0.19.tar.gz
-		#  Running setup.py egg_info for package Adafruit-BBIO
-		#    The required version of distribute (>=0.6.45) is not available,
-		#    and can't be installed while this script is running. Please
-		#    install a more recent version first, using
-		#    'easy_install -U distribute'.
-		#
-		#    (Currently using distribute 0.6.24dev-r0 (/usr/lib/python2.7/dist-packages))
-		#    Complete output from command python setup.py egg_info:
-		#    The required version of distribute (>=0.6.45) is not available,
-		#
-		#and can't be installed while this script is running. Please
-		#
-		#install a more recent version first, using
-		#
-		#'easy_install -U distribute'.
-		#
-		#(Currently using distribute 0.6.24dev-r0 (/usr/lib/python2.7/dist-packages))
-
-		easy_install -U distribute
-		pip install Adafruit_BBIO
-	fi
-}
-
-install_gem_pkgs () {
-	if [ -f /usr/bin/gem ] ; then
-		echo "Installing gem packages"
-		echo "debug: gem: [`gem --version`]"
-		gem_wheezy="--no-rdoc --no-ri"
-		gem_jessie="--no-document"
-
-		echo "gem: [beaglebone]"
-		gem install beaglebone || true
-
-		echo "gem: [jekyll ${gem_wheezy}]"
-		gem install jekyll ${gem_wheezy} || true
-	fi
-}
-
 install_git_repos () {
 	git_repo="https://github.com/prpplague/Userspace-Arduino"
 	git_target_dir="/opt/source/Userspace-Arduino"
@@ -430,37 +408,26 @@ install_git_repos () {
 		if [ -f /usr/bin/make ] ; then
 			make
 		fi
+		cd /
 	fi
 
-	git_repo="https://github.com/biocode3D/prufh.git"
-	git_target_dir="/opt/source/prufh"
-	git_clone
-	if [ -f ${git_target_dir}/.git/config ] ; then
-		cd ${git_target_dir}/
-		if [ -f /usr/bin/make ] ; then
-			make LIBDIR_APP_LOADER=/usr/lib/ INCDIR_APP_LOADER=/usr/include
+	#am335x-pru-package
+	if [ -f /usr/include/prussdrv.h ] ; then
+		git_repo="https://github.com/biocode3D/prufh.git"
+		git_target_dir="/opt/source/prufh"
+		git_clone
+		if [ -f ${git_target_dir}/.git/config ] ; then
+			cd ${git_target_dir}/
+			if [ -f /usr/bin/make ] ; then
+				make LIBDIR_APP_LOADER=/usr/lib/ INCDIR_APP_LOADER=/usr/include
+			fi
+			cd /
 		fi
+
+		git_repo="git://git.ti.com/pru-software-support-package/pru-software-support-package.git"
+		git_target_dir="/opt/source/pru-software-support-package"
+		git_clone
 	fi
-
-	git_repo="https://github.com/alexanderhiam/PyBBIO.git"
-	git_target_dir="/opt/source/PyBBIO"
-	git_clone
-	if [ -f ${git_target_dir}/.git/config ] ; then
-		cd ${git_target_dir}/
-		if [ -f /usr/bin/dtc ] ; then
-			sed -i "s/PLATFORM = ''/PLATFORM = 'BeagleBone >=3.8'/g" setup.py
-			python setup.py install
-		fi
-	fi
-
-	git_repo="https://github.com/RobertCNelson/dtb-rebuilder.git"
-	git_branch="3.14-ti"
-	git_target_dir="/opt/source/dtb-${git_branch}"
-	git_clone_branch
-
-	git_repo="git://git.ti.com/pru-software-support-package/pru-software-support-package.git"
-	git_target_dir="/opt/source/pru-software-support-package"
-	git_clone
 }
 
 install_build_pkgs () {
@@ -476,6 +443,7 @@ install_build_pkgs () {
 			update-alternatives --install /usr/bin/x-www-browser x-www-browser /usr/bin/chromium 200
 		fi
 	fi
+	cd /
 }
 
 other_source_links () {
@@ -484,9 +452,11 @@ other_source_links () {
 	mkdir -p /opt/source/u-boot_${u_boot_release}/
 	wget --directory-prefix="/opt/source/u-boot_${u_boot_release}/" ${rcn_https}/${u_boot_release}/0001-omap3_beagle-uEnv.txt-bootz-n-fixes.patch
 	wget --directory-prefix="/opt/source/u-boot_${u_boot_release}/" ${rcn_https}/${u_boot_release}/0001-am335x_evm-uEnv.txt-bootz-n-fixes.patch
-	wget --directory-prefix="/opt/source/u-boot_${u_boot_release}/" ${rcn_https}/${u_boot_release}/0001-beagle_x15-uEnv.txt-bootz-n-fixes.patch
+	mkdir -p /opt/source/u-boot_${u_boot_release_x15}/
+	wget --directory-prefix="/opt/source/u-boot_${u_boot_release_x15}/" ${rcn_https}/${u_boot_release_x15}/0001-beagle_x15-uEnv.txt-bootz-n-fixes.patch
 
 	echo "u-boot_${u_boot_release} : /opt/source/u-boot_${u_boot_release}" >> /opt/source/list.txt
+	echo "u-boot_${u_boot_release_x15} : /opt/source/u-boot_${u_boot_release_x15}" >> /opt/source/list.txt
 
 	chown -R ${rfs_username}:${rfs_username} /opt/source/
 }
@@ -527,11 +497,15 @@ is_this_qemu
 setup_system
 setup_desktop
 
-#install_node_pkgs
-#install_pip_pkgs
 #install_gem_pkgs
+#install_pip_pkgs
+#install_node_pkgs
 if [ -f /usr/bin/git ] ; then
+	git config --global user.email "${rfs_username}@example.com"
+	git config --global user.name "${rfs_username}"
 	install_git_repos
+	git config --global --unset-all user.email
+	git config --global --unset-all user.name
 fi
 #install_build_pkgs
 other_source_links
