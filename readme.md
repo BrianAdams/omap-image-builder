@@ -1,3 +1,17 @@
+This is the OpenROV-fork of the omap-image-builder project.
+
+To build an OpenROV image:
+
+```shell
+time=$(date +%Y-%m-%d)
+label="debian-8.4-orov_dev-armhf-${time}"	
+./RootStock-NG.sh -c OpenROV-debian-jessie-development
+cd deploy/${label}
+sudo ./setup_sdcard.sh --dtb beaglebone --boot_label OPENROV --enable-systemd --bbb-old-bootloader-in-emmc --img-4gb $label 
+7zr a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on ../${label}.7z *.img
+```
+
+
 eeprom database
 ------------
 
