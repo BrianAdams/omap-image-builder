@@ -121,9 +121,9 @@ install_custom_pkgs () {
 	rm openrov-geocamera-utils_1.0.0-1~35.16a26aa_armhf.deb
 
 	# UVC Driver
-	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/uvcvideo/linux-4.1.22-ti-r59-uvcvideo-geopatch_1.0.0-1~17.0012e33_armhf.deb
-  	dpkg -i linux-4.1.22-ti-r59-uvcvideo-geopatch_1.0.0-1~17.0012e33_armhf.deb
-	rm linux-4.1.22-ti-r59-uvcvideo-geopatch_1.0.0-1~17.0012e33_armhf.deb
+	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/uvcvideo/linux-4.1.22-ti-r59-uvcvideo-geopatch_1.0.0-1~28.2dadfdf_armhf.deb
+  	dpkg -i linux-4.1.22-ti-r59-uvcvideo-geopatch_1.0.0-1~28.2dadfdf_armhf.deb
+	rm linux-4.1.22-ti-r59-uvcvideo-geopatch_1.0.0-1~28.2dadfdf_armhf.deb
 
 	# Geomuxpp App
 	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/geomuxpp/openrov-geomuxpp_1.0.0-1~14_armhf.deb
@@ -131,9 +131,9 @@ install_custom_pkgs () {
 	rm openrov-geomuxpp_1.0.0-1~14_armhf.deb
 
 	# Arduino Core
-	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/arduino/openrov-arduino_1.0.0-1~17_armhf.deb
-	dpkg -i openrov-arduino_1.0.0-1~17_armhf.deb
-	rm openrov-arduino_1.0.0-1~17_armhf.deb
+	RUN	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/arduino/openrov-arduino_1.0.0-1~21_armhf.deb && \
+	dpkg -i openrov-arduino_1.0.0-1~21_armhf.deb && \
+	rm openrov-arduino_1.0.0-1~21_armhf.deb
 
 	# Arduino Builder
 	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/arduino-builder/openrov-arduino-builder_1.0.0-1~6_armhf.deb
@@ -240,40 +240,11 @@ install_node_pkgs () {
 			bash install_lib/openrov-cockpit-afterinstall.sh
 		fi
 
-		# Dashboard
-		git_repo="https://github.com/openrov/openrov-dashboard"
-		git_target_dir="/opt/openrov/dashboard"
-		git_clone_full
-		if [ -f ${git_target_dir}/.git/config ] ; then
-			cd ${git_target_dir}/
-			TERM=dumb npm install --production --unsafe-perm
-			TERM=dumb npm run-script bower
-			wfile="/lib/systemd/system/orov-dashboard.socket"
-			echo "[Socket]" > ${wfile}
-			echo "ListenStream=3080" >> ${wfile}
-			echo "" >> ${wfile}
-			echo "[Install]" >> ${wfile}
-			echo "WantedBy=sockets.target" >> ${wfile}
-
-			wfile="/lib/systemd/system/orov-dashboard.service"
-			echo "[Unit]" > ${wfile}
-			echo "Description=Cockpit server" >> ${wfile}
-			echo "" >> ${wfile}
-			echo "[Service]" >> ${wfile}
-			#http://stackoverflow.com/questions/22498753/no-data-from-socket-activation-with-systemd
-			echo "NonBlocking=True" >> ${wfile}
-			echo "WorkingDirectory=/opt/openrov/dashboard/src" >> ${wfile}
-			echo "ExecStart=/usr/bin/node dashboard.js" >> ${wfile}
-			echo "SyslogIdentifier=orov-dashboard" >> ${wfile}
-
-			systemctl enable orov-dashboard.socket || true
-
-		fi
-
 		# Proxy
 		git_repo="https://github.com/openrov/openrov-proxy"
 		git_target_dir="/opt/openrov/openrov-proxy"
-		git_clone_full
+	  	git_branch="master"
+		git_clone_branch
 		if [ -f ${git_target_dir}/.git/config ] ; then
 			cd ${git_target_dir}/
 			TERM=dumb npm install --production
@@ -330,7 +301,8 @@ install_git_repos ()
 	# BBB DTOverlays
 	git_repo="https://github.com/beagleboard/bb.org-overlays"
 	git_target_dir="/opt/source/bb.org-overlays"
-	git_clone
+	git_branch="master"	
+	git_clone_branch
 	if [ -f ${git_target_dir}/.git/config ] ; then
 		cd ${git_target_dir}/
 		if [ ! "x${repo_rcnee_pkg_version}" = "x" ] ; then
