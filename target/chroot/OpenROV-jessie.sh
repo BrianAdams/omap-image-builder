@@ -287,7 +287,7 @@ install_git_repos ()
 {
 	# MCU Firmware
 	git_repo="https://github.com/openrov/openrov-software-arduino"
-	git_branch="firmware-2.0"
+	git_branch="master"
 	git_target_chroot_dir="/opt/openrov/firmware"
 	git_target_dir="${ROOTFS_DIR}${git_target_chroot_dir}"
 	git_clone_branch
