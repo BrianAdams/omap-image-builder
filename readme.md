@@ -1,6 +1,6 @@
 This is the OpenROV-fork of the omap-image-builder project.
 
-To build an OpenROV image:
+## To build an OpenROV image (from an ARM machine):
 
 ```shell
 time=$(date +%Y-%m-%d)
@@ -11,6 +11,16 @@ sudo ./setup_sdcard.sh --dtb beaglebone --boot_label OPENROV --enable-systemd --
 7zr a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on ../${label}.7z *.img
 ```
 
+## OpenROV Branches and Tags
+* master: This is where active development is taking place
+* v(version): This is a releases
+
+## Release Process
+1. Update the OpenROV-debian-jessie-console.conf to match the changes made in OpenROV-debian-jessie-development.conf
+2. Update the OpenROV-jessie.sh to match the changes made in OpenROV-development-jessie.sh
+3. Update the OpenROV-debian-jessie-console.conf github branches to point to a stable commit number/branch
+4. Build and tune the production image so that it is <1.79GB
+5. Create a RELEASE for the version of the image.
 
 eeprom database
 ------------
