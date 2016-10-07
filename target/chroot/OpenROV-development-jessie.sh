@@ -220,7 +220,7 @@ install_node_pkgs () {
 		git_clone_branch
 		if [ -f ${git_target_dir}/.git/config ] ; then
 			cd ${git_target_dir}/
-			TERM=dumb npm install --production --unsafe-perm
+			TERM=dumb npm run deploy:prod
 
 			wfile="/lib/systemd/system/orov-cockpit.service"
 			echo "[Unit]" > ${wfile}
