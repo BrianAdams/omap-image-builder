@@ -194,7 +194,7 @@ install_node_pkgs () {
 		git_clone_branch
 		if [ -f ${git_target_dir}/.git/config ] ; then
 			cd ${git_target_dir}/
-			TERM=dumb npm install --unsafe-perm
+			TERM=dumb npm install --unsafe-perm 
 
 			wfile="/lib/systemd/system/orov-sysdetect.service"
 			echo "[Unit]" > ${wfile}
@@ -220,13 +220,17 @@ install_node_pkgs () {
 		git_clone_branch
 		if [ -f ${git_target_dir}/.git/config ] ; then
 			cd ${git_target_dir}/
-			TERM=dumb npm run deploy:prod
+			#These are the setting for the deploy:dev-image, change when deploying prod-image
+			TERM=dumb env 'npm_config_unsafe_perm=false' env 'npm_config_shrinkwrap=false' npm install
 
 			wfile="/lib/systemd/system/orov-cockpit.service"
 			echo "[Unit]" > ${wfile}
 			echo "Description=Cockpit server" >> ${wfile}
 			echo "" >> ${wfile}
 			echo "[Service]" >> ${wfile}
+
+			# Set restart on the prod-image
+			#echo "Restart=always" >> ${wfile}
 			echo "NonBlocking=True" >> ${wfile}
 			echo "WorkingDirectory=/opt/openrov/cockpit/src" >> ${wfile}
 			echo "ExecStart=/usr/bin/node cockpit.js" >> ${wfile}
