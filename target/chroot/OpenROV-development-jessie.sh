@@ -131,7 +131,7 @@ install_custom_pkgs () {
 	rm openrov-geomuxpp_1.0.0-1~14_armhf.deb
 
 	# Arduino Core
-	RUN	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/arduino/openrov-arduino_1.0.0-1~21_armhf.deb && \
+	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/arduino/openrov-arduino_1.0.0-1~21_armhf.deb && \
 	dpkg -i openrov-arduino_1.0.0-1~21_armhf.deb && \
 	rm openrov-arduino_1.0.0-1~21_armhf.deb
 
