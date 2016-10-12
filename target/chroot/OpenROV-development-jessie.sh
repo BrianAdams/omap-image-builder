@@ -341,7 +341,7 @@ install_git_repos ()
 	then
 		cd ${git_target_dir}/
 		git reset --hard f52aa5296848eda984d0841508c1ddb47a97c3a2
-	else	
+	fi	
 
 	# BBB DTOverlays
 	git_repo="https://github.com/beagleboard/bb.org-overlays"
@@ -353,7 +353,7 @@ install_git_repos ()
 	then
 		cd ${git_target_dir}/
 		git reset --hard 961e2ee94bde68f2a5602a93419a2bb36270eea2
-	else
+	fi
 
 	if [ -f ${git_target_dir}/.git/config ] ; then
 		cd ${git_target_dir}/
