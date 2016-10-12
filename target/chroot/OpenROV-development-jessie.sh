@@ -338,6 +338,17 @@ install_git_repos ()
 
 }
 
+patchdnsmasq () {
+	if grep -q "network-online.target" /lib/systemd/system/dnsmasq.service;
+	then
+		echo "dnsmasq already patched"
+	else
+		echo "patching dnsmasq unit file"
+		sed -i '/^\[Unit\]/a Wants=network-online.target\nAfter=network-online.target' /lib/systemd/system/dnsmasq.service
+		systemctl daemon-reload	|| true
+	fi
+}
+
 todo () {
 	#Setup nginx
 	#cd /etc/nginx/sites-enabled/
@@ -345,6 +356,7 @@ todo () {
 	
 	#We only need one logger, and journald seems to be it
 	apt-get purge -y rsyslog
+	patchdnsmasq
 }
 
 
