@@ -412,12 +412,20 @@ todo () {
 	patchdnsmasq
 }
 
+cleanup () {
+	TERM=dumb npm cache clean
+	rm -rf /tmp/*
+	apt-get clean
+	rm -rf /var/lib/apt/lists/*
+}
+
 
 is_this_qemu
 
 install_custom_pkgs
 install_node_pkgs
 todo
+cleanup
 
 if [ -f /usr/bin/git ] ; then
 	git config --global user.email "${rfs_username}@example.com"
