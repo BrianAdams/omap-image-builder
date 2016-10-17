@@ -167,6 +167,8 @@ install_node_pkgs () {
 
 		echo "debug: npm: [`${npm_bin} --version`]"
 
+		export npm_config_global=true		
+
 		#c9-core-installer...
 		${npm_bin} config delete cache
 		${npm_bin} config delete tmp
@@ -417,6 +419,10 @@ cleanup () {
 	rm -rf /tmp/*
 	apt-get clean
 	rm -rf /var/lib/apt/lists/*
+	find /usr/share/doc -depth -type f ! -name copyright|xargs rm || true
+	find /usr/share/doc -empty|xargs rmdir || true
+	rm -rf /usr/share/man/* /usr/share/groff/* /usr/share/info/*
+	rm -rf /usr/share/lintian/* /usr/share/linda/* /var/cache/man/*	
 }
 
 
