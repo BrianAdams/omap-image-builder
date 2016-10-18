@@ -167,7 +167,7 @@ install_node_pkgs () {
 
 		echo "debug: npm: [`${npm_bin} --version`]"
 
-		export npm_config_global=true		
+		#export npm_config_global=true		
 
 		#c9-core-installer...
 		${npm_bin} config delete cache
