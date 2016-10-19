@@ -423,6 +423,11 @@ cleanup () {
 	find /usr/share/doc -empty|xargs rmdir || true
 	rm -rf /usr/share/man/* /usr/share/groff/* /usr/share/info/*
 	rm -rf /usr/share/lintian/* /usr/share/linda/* /var/cache/man/*	
+	rm -rf /home/rov/.cache
+}
+
+primefirstboot () {
+	touch /var/.RESIZE_ROOT_PARTITION
 }
 
 
@@ -432,6 +437,7 @@ install_custom_pkgs
 install_node_pkgs
 todo
 cleanup
+primefirstboot
 
 if [ -f /usr/bin/git ] ; then
 	git config --global user.email "${rfs_username}@example.com"
