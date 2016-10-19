@@ -351,11 +351,12 @@ install_git_repos ()
 	git_branch="master"	
 	git_clone_branch
 
-	if [ "$MYENV" = "production" ]
-	then
-		cd ${git_target_dir}/
-		git reset --hard 961e2ee94bde68f2a5602a93419a2bb36270eea2
-	fi
+# This is failing at the moment.
+#	if [ "$MYENV" = "production" ]
+#	then
+#		cd ${git_target_dir}/
+#		git reset --hard 961e2ee94bde68f2a5602a93419a2bb36270eea2
+#	fi
 
 	if [ -f ${git_target_dir}/.git/config ] ; then
 		cd ${git_target_dir}/
