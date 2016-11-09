@@ -276,7 +276,31 @@ install_node_pkgs () {
 			TERM=dumb npm install --production
 			cd ${git_target_dir}/
 			ln -s /opt/openrov/openrov-proxy/proxy-via-browser/ /opt/openrov/proxy
-			bash install_lib/openrov-proxy-afterinstall.sh
+			#bash install_lib/openrov-proxy-afterinstall.sh
+
+			wfile="/lib/systemd/system/orov-proxy.service"
+			echo "[Unit]" > ${wfile}
+			echo "Description=OpenROV Proxy Service" >> ${wfile}
+			echo "" >> ${wfile}
+			echo "[Service]" >> ${wfile}
+
+			# Set restart on the prod-image
+			if [ "$MYENV" = "production" ]
+			then
+			  echo "Restart=always" >> ${wfile}
+			fi			
+			echo "NonBlocking=True" >> ${wfile}
+			echo "WorkingDirectory=/opt/openrov/proxy" >> ${wfile}
+			echo "ExecStartPre=/opt/openrov/proxy/pre-start.sh" >> ${wfile}
+			echo "ExecStart=/usr/bin/node index.js" >> ${wfile}
+			echo "ExecStopPost=/opt/openrov/proxy/pre-stop.sh" >> ${wfile}			
+			echo "SyslogIdentifier=orov-proxy" >> ${wfile}
+			echo "" >> ${wfile}
+			echo "[Install]" >> ${wfile}
+			echo "WantedBy=multi-user.target" >> ${wfile}
+
+			systemctl enable orov-proxy.service || true
+
 		fi
 
 
@@ -405,6 +429,10 @@ patchdnsmasq () {
 	fi
 }
 
+speedUpBootTime () {
+	sed -i 's/Type=oneshot/Type=simple/g' /lib/systemd/system/generic-board-startup.service
+}
+
 todo () {
 	#Setup nginx
 	#cd /etc/nginx/sites-enabled/
@@ -413,6 +441,7 @@ todo () {
 	#We only need one logger, and journald seems to be it
 	apt-get purge -y rsyslog
 	patchdnsmasq
+	speedUpBootTime
 }
 
 cleanup () {
