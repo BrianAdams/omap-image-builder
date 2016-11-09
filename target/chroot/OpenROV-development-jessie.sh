@@ -405,6 +405,10 @@ patchdnsmasq () {
 	fi
 }
 
+speedUpBootTime () {
+	sed -i 's/Type=oneshot/Type=simple/g' /lib/systemd/system/generic-board-startup.service
+}
+
 todo () {
 	#Setup nginx
 	#cd /etc/nginx/sites-enabled/
@@ -413,6 +417,7 @@ todo () {
 	#We only need one logger, and journald seems to be it
 	apt-get purge -y rsyslog
 	patchdnsmasq
+	speedUpBootTime
 }
 
 cleanup () {
