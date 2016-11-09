@@ -167,6 +167,8 @@ install_node_pkgs () {
 
 		echo "debug: npm: [`${npm_bin} --version`]"
 
+		#export npm_config_global=true		
+
 		#c9-core-installer...
 		${npm_bin} config delete cache
 		${npm_bin} config delete tmp
@@ -190,7 +192,12 @@ install_node_pkgs () {
 		# Sysdetect
 		git_repo="https://github.com/openrov-dev/orov-sysdetect.git"
 		git_target_dir="/opt/openrov/system"
-	  	git_branch="master"
+		if [ "$MYENV" = "production" ]
+		then
+			git_branch="v1.0.0"
+		else
+	  		git_branch="master"
+		fi		
 		git_clone_branch
 		if [ -f ${git_target_dir}/.git/config ] ; then
 			cd ${git_target_dir}/
@@ -216,7 +223,12 @@ install_node_pkgs () {
 		# Cockpit
 		git_repo="https://github.com/OpenROV/openrov-cockpit"
 		git_target_dir="/opt/openrov/cockpit"
-	  	git_branch="master"
+		if [ "$MYENV" = "production" ]
+		then
+			git_branch="v31.0.0"
+		else
+	  		git_branch="master"
+		fi	
 		git_clone_branch
 		if [ -f ${git_target_dir}/.git/config ] ; then
 			cd ${git_target_dir}/
@@ -230,7 +242,10 @@ install_node_pkgs () {
 			echo "[Service]" >> ${wfile}
 
 			# Set restart on the prod-image
-			#echo "Restart=always" >> ${wfile}
+			if [ "$MYENV" = "production" ]
+			then
+			  echo "Restart=always" >> ${wfile}
+			fi			
 			echo "NonBlocking=True" >> ${wfile}
 			echo "WorkingDirectory=/opt/openrov/cockpit/src" >> ${wfile}
 			echo "ExecStart=/usr/bin/node cockpit.js" >> ${wfile}
@@ -247,7 +262,12 @@ install_node_pkgs () {
 		# Proxy
 		git_repo="https://github.com/openrov/openrov-proxy"
 		git_target_dir="/opt/openrov/openrov-proxy"
-	  	git_branch="master"
+		if [ "$MYENV" = "production" ]
+		then
+			git_branch="v1.2.0"
+		else
+	  		git_branch="master"
+		fi	
 		git_clone_branch
 		if [ -f ${git_target_dir}/.git/config ] ; then
 			cd ${git_target_dir}/
@@ -261,7 +281,13 @@ install_node_pkgs () {
 
 
 		echo "Installing wetty"
-		TERM=dumb npm install -g wetty
+		if [ "$MYENV" = "production" ]
+		then
+			TERM=dumb npm install -g wetty@0.2.0
+		else
+	  		TERM=dumb npm install -g wetty
+		fi			
+
 
 		cd /opt/
 
@@ -269,7 +295,13 @@ install_node_pkgs () {
 		if [ -d /opt/cloud9/build/standalonebuild ] ; then
 			if [ -f /usr/bin/make ] ; then
 				echo "Installing winston"
-				TERM=dumb npm install -g winston --arch=armhf
+				if [ "$MYENV" = "production" ]
+				then
+					TERM=dumb npm install -g winston@2.2.0 --arch=armhf
+				else
+					TERM=dumb npm install -g winston --arch=armhf
+				fi				
+				
 			fi
 
 			#cloud9 conflicts with the openrov proxy, move cloud 9
@@ -291,22 +323,41 @@ install_git_repos ()
 {
 	# MCU Firmware
 	git_repo="https://github.com/openrov/openrov-software-arduino"
-	git_branch="master"
+	if [ "$MYENV" = "production" ]
+	then
+		git_branch="v31.0.0"
+	else
+		git_branch="master"
+	fi	
 	git_target_chroot_dir="/opt/openrov/firmware"
 	git_target_dir="${ROOTFS_DIR}${git_target_chroot_dir}"
 	git_clone_branch
 
 	# DTB Redbuilder
 	git_repo="https://github.com/RobertCNelson/dtb-rebuilder.git"
-	git_branch="4.1-ti"
+	git_branch="4.1-ti"	
 	git_target_dir="/opt/source/dtb-${git_branch}"
 	git_clone_branch
+
+	if [ "$MYENV" = "production" ]
+	then
+		cd ${git_target_dir}/
+		git reset --hard f52aa5296848eda984d0841508c1ddb47a97c3a2
+	fi	
 
 	# BBB DTOverlays
 	git_repo="https://github.com/beagleboard/bb.org-overlays"
 	git_target_dir="/opt/source/bb.org-overlays"
 	git_branch="master"	
 	git_clone_branch
+
+# This is failing at the moment.
+#	if [ "$MYENV" = "production" ]
+#	then
+#		cd ${git_target_dir}/
+#		git reset --hard 961e2ee94bde68f2a5602a93419a2bb36270eea2
+#	fi
+
 	if [ -f ${git_target_dir}/.git/config ] ; then
 		cd ${git_target_dir}/
 		if [ ! "x${repo_rcnee_pkg_version}" = "x" ] ; then
@@ -328,7 +379,12 @@ install_git_repos ()
 	# Image customization
 	git_repo="https://github.com/openrov/openrov-image-customization"
 	git_target_dir="/opt/openrov/image-customization"
-	git_branch="bbb-jessie"
+	if [ "$MYENV" = "production" ]
+	then
+		git_branch="v31.0.0-bbb"
+	else
+		git_branch="bbb-jessie"	
+	fi	
 	git_clone_branch
 	if [ -f ${git_target_dir}/.git/config ] ; then
 		cd ${git_target_dir}/
@@ -359,12 +415,30 @@ todo () {
 	patchdnsmasq
 }
 
+cleanup () {
+	TERM=dumb npm cache clean
+	rm -rf /tmp/*
+	apt-get clean
+	rm -rf /var/lib/apt/lists/*
+	find /usr/share/doc -depth -type f ! -name copyright|xargs rm || true
+	find /usr/share/doc -empty|xargs rmdir || true
+	rm -rf /usr/share/man/* /usr/share/groff/* /usr/share/info/*
+	rm -rf /usr/share/lintian/* /usr/share/linda/* /var/cache/man/*	
+	rm -rf /home/rov/.cache
+}
+
+primefirstboot () {
+	touch /var/.RESIZE_ROOT_PARTITION
+}
+
 
 is_this_qemu
 
 install_custom_pkgs
 install_node_pkgs
 todo
+cleanup
+primefirstboot
 
 if [ -f /usr/bin/git ] ; then
 	git config --global user.email "${rfs_username}@example.com"
@@ -372,6 +446,13 @@ if [ -f /usr/bin/git ] ; then
 	install_git_repos
 	git config --global --unset-all user.email
 	git config --global --unset-all user.name
+fi
+
+if [ "$MYENV" = "production" ]
+then
+	echo "prod-build $IMG_VERSION" > /ROV-Suite-version
+else
+	echo "dev-build $IMG_VERSION" > /ROV-Suite-version	
 fi
 
 chown rov:rov /home -R

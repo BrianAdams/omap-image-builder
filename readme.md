@@ -4,7 +4,9 @@ This is the OpenROV-fork of the omap-image-builder project.
 
 ```shell
 time=$(date +%Y-%m-%d)
-label="debian-8.4-orov_dev-armhf-${time}"	
+label="debian-8.4-orov_dev-armhf-${time}"
+# Uncomment to build with latest dependencies instead of pinned dependencies
+# sed -i 's/MYENV="production"/MYENV="development"/g' OpenROV-debian-jessie-development.conf
 ./RootStock-NG.sh -c OpenROV-debian-jessie-development
 cd deploy/${label}
 sudo ./setup_sdcard.sh --dtb beaglebone --boot_label OPENROV --enable-systemd --bbb-old-bootloader-in-emmc --img-4gb $label 
