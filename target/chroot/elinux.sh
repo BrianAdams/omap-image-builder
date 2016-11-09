@@ -22,9 +22,6 @@
 
 export LC_ALL=C
 
-u_boot_release="v2016.03"
-#bone101_git_sha="50e01966e438ddc43b9177ad4e119e5274a0130d"
-
 #contains: rfs_username, release_date
 if [ -f /etc/rcn-ee.conf ] ; then
 	. /etc/rcn-ee.conf
@@ -89,32 +86,18 @@ setup_system () {
 
 install_git_repos () {
 	git_repo="https://github.com/RobertCNelson/dtb-rebuilder.git"
+	git_target_dir="/opt/source/dtb-4.4-ti"
 	git_branch="4.4-ti"
-	git_target_dir="/opt/source/dtb-${git_branch}"
+	git_clone_branch
+
+	git_repo="https://github.com/RobertCNelson/dtb-rebuilder.git"
+	git_target_dir="/opt/source/dtb-4.9-ti"
+	git_branch="4.9-ti"
 	git_clone_branch
 
 	git_repo="https://github.com/beagleboard/bb.org-overlays"
 	git_target_dir="/opt/source/bb.org-overlays"
 	git_clone
-	if [ -f ${git_target_dir}/.git/config ] ; then
-		cd ${git_target_dir}/
-		if [ ! "x${repo_rcnee_pkg_version}" = "x" ] ; then
-			is_kernel=$(echo ${repo_rcnee_pkg_version} | grep 4.1 || true)
-			if [ ! "x${is_kernel}" = "x" ] ; then
-				if [ -f /usr/bin/make ] ; then
-					#just for trusty, 14.04... drop with xenial...
-					if [ ! -f /usr/bin/dtc-v4.1.x ] ; then
-						./dtc-overlay.sh
-					fi
-					make
-					make install
-					update-initramfs -u -k ${repo_rcnee_pkg_version}
-					rm -rf /home/${rfs_username}/git/ || true
-					make clean
-				fi
-			fi
-		fi
-	fi
 }
 
 
