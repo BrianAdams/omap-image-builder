@@ -22,8 +22,8 @@
 
 export LC_ALL=C
 
-u_boot_release="v2016.01"
-u_boot_release_x15="v2015.07"
+u_boot_release="v2016.11-rc3"
+u_boot_release_x15="ti-2016.05"
 #bone101_git_sha="50e01966e438ddc43b9177ad4e119e5274a0130d"
 
 #contains: rfs_username, release_date
@@ -359,15 +359,17 @@ install_git_repos ()
 
 	# DTB Redbuilder
 	git_repo="https://github.com/RobertCNelson/dtb-rebuilder.git"
-	git_branch="4.1-ti"	
+	git_branch="4.4-ti"	
 	git_target_dir="/opt/source/dtb-${git_branch}"
 	git_clone_branch
 
 	if [ "$MYENV" = "production" ]
 	then
 		cd ${git_target_dir}/
-		git reset --hard f52aa5296848eda984d0841508c1ddb47a97c3a2
+		git reset --hard 7a48c85b3d3aef794b3eecfe201f4db3ff416d15
 	fi	
+
+	# The beaglboard examples are now also adding 4.9-ti for dtd-rebuilder?
 
 	# BBB DTOverlays
 	git_repo="https://github.com/beagleboard/bb.org-overlays"
@@ -388,11 +390,12 @@ install_git_repos ()
 			is_kernel=$(echo ${repo_rcnee_pkg_version} | grep 4.1 || true)
 			if [ ! "x${is_kernel}" = "x" ] ; then
 				if [ -f /usr/bin/make ] ; then
-					./dtc-overlay.sh
-					make
-					make install
+					if [ ! -f /lib/firmware/BB-ADC-00A0.dtbo ] ; then
+						make
+						make install
+						make clean
+					fi
 					update-initramfs -u -k ${repo_rcnee_pkg_version}
-					rm -rf /home/${rfs_username}/git/ || true
 					make clean
 				fi
 			fi

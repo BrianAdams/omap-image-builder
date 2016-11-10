@@ -9,7 +9,7 @@ label="debian-8.4-orov_dev-armhf-${time}"
 # sed -i 's/MYENV="production"/MYENV="development"/g' OpenROV-debian-jessie-development.conf
 ./RootStock-NG.sh -c OpenROV-debian-jessie-development
 cd deploy/${label}
-sudo ./setup_sdcard.sh --dtb beaglebone --boot_label OPENROV --enable-systemd --bbb-old-bootloader-in-emmc --img-4gb $label 
+sudo ./setup_sdcard.sh --dtb beaglebone --boot_label OPENROV --enable-systemd --bbb-old-bootloader-in-emmc --hostname OpenROV --enable-cape-universal --img-4gb $label 
 7zr a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on ../${label}.7z *.img
 ```
 
