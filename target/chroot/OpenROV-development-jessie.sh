@@ -83,9 +83,9 @@ git_clone_full () {
 }
 
 install_dep_from_url () {
-	wget {deb_url}/{deb_package}
-	dpkg -i {deb_package}
-	rm {deb_package}
+	wget ${deb_url}/${deb_package}
+	dpkg -i ${deb_package}
+	rm ${deb_package}
 }
 
 cleanup_npm_cache () {
