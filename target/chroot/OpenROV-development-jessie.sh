@@ -301,7 +301,8 @@ install_node_pkgs () {
 			echo "[Install]" >> ${wfile}
 			echo "WantedBy=multi-user.target" >> ${wfile}
 
-			systemctl enable orov-proxy.service || true
+			#Temporarily disabled https://github.com/OpenROV/openrov-software/issues/513
+			#systemctl enable orov-proxy.service || true
 
 		fi
 
