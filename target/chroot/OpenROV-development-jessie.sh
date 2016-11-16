@@ -131,11 +131,10 @@ install_custom_pkgs () {
   	dpkg -i linux-4.4.30-ti-r65-uvcvideo-geopatch_1.0.0-1~31.1b7bcb8_armhf.deb
 	rm linux-4.4.30-ti-r65-uvcvideo-geopatch_1.0.0-1~31.1b7bcb8_armhf.deb
 
-	# V4L2-Utils
-	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/v4l-utils/v4l-utils_1.10.1_armhf.deb
-  	dpkg -i v4l-utils_1.10.1_armhf.deb
-	rm v4l-utils_1.10.1_armhf.deb
-	
+	# v4l-utils
+	deb_url="http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/v4l-utils"
+	deb_package="v4l-utils_1.10.1_armhf.deb"
+	install_dep_from_url
 
 	# Geomuxpp App
 	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/geomuxpp/openrov-geomuxpp_1.0.0-1~14_armhf.deb
@@ -152,20 +151,15 @@ install_custom_pkgs () {
 	dpkg -i openrov-arduino-builder_1.0.0-1~6_armhf.deb
 	rm openrov-arduino-builder_1.0.0-1~6_armhf.deb
 
-    # ZeroMQ for dynamiclly linking with MjpgStreamer App
-	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/zmq/openrov-zmq_1.0.0-1~2_armhf.deb
-	dpkg -i openrov-zmq_1.0.0-1~2_armhf.deb
-	rm openrov-zmq_1.0.0-1~2_armhf.deb	
+	# Nightrider program
+	deb_url="http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/bbb-ledstatus"
+	deb_package="bbb-ledstatus_1.0.0_armhf.deb"
+	install_dep_from_url
 	
-	# MjpgStreamer App
-	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/mjpeg-streamer/openrov-mjpeg-streamer_2.0.1-10~27.27ae33f_armhf.deb	
-	dpkg -i openrov-mjpeg-streamer_2.0.1-10~27.27ae33f_armhf.deb	
-	rm openrov-mjpeg-streamer_2.0.1-10~27.27ae33f_armhf.deb	
-
-	# Mjepg Streamer dependencies
+	# Mjpeg Streamer dependencies
 	deb_url="http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/libjpeg-turbo"
 	deb_package="libjpeg-turbo_1.5.0_armhf.deb"
-	install_dep_from_url	
+	install_dep_from_url
 
 	deb_url="http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/libuv"
 	deb_package="libuv_1.1.0_armhf.deb"
@@ -175,11 +169,10 @@ install_custom_pkgs () {
 	deb_package="uwebsockets_0.11.0_armhf.deb"
 	install_dep_from_url
 
-	# Temporarily added to support mjpeg development
-	deb_url="http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/cmake"
-	deb_package="cmake_3.7.0-rc3_armhf.deb"
-	install_dep_from_url		
-
+	# MjpgStreamer App
+	deb_url="http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/mjpg-streamer"
+	deb_package="mjpg-streamer_1.1.0_armhf.deb"
+	install_dep_from_url
 }
 install_node_pkgs () {
 	if [ -f /usr/bin/npm ] ; then
