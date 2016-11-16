@@ -306,9 +306,11 @@ install_node_pkgs () {
 			cd proxy-via-browser
 			TERM=dumb npm install --production
 			cd ${git_target_dir}/
-			ln -s /opt/openrov/openrov-proxy/proxy-via-browser/ /opt/openrov/proxy
 			#bash install_lib/openrov-proxy-afterinstall.sh
-
+			ln -s /opt/openrov/openrov-proxy/proxy-via-browser/ /opt/openrov/proxy
+			mkdir -p /etc/nginx/locations-enabled
+			ln -s /opt/openrov/proxy/nginx.location /etc/nginx/locations-enabled/proxy.conf	
+			
 			wfile="/lib/systemd/system/orov-proxy.service"
 			echo "[Unit]" > ${wfile}
 			echo "Description=OpenROV Proxy Service" >> ${wfile}
@@ -330,7 +332,8 @@ install_node_pkgs () {
 			echo "[Install]" >> ${wfile}
 			echo "WantedBy=multi-user.target" >> ${wfile}
 
-			systemctl enable orov-proxy.service || true
+			#Temporarily disabled https://github.com/OpenROV/openrov-software/issues/513
+			#systemctl enable orov-proxy.service || true
 
 		fi
 
