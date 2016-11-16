@@ -251,7 +251,7 @@ install_node_pkgs () {
 		then
 			git_branch="v31.0.0"
 		else
-	  		git_branch="master"
+	  		git_branch="feature/websocket-mjpeg"
 		fi	
 		git_clone_branch
 		if [ -f ${git_target_dir}/.git/config ] ; then
