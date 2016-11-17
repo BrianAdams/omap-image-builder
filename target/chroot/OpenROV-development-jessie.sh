@@ -22,8 +22,8 @@
 
 export LC_ALL=C
 
-u_boot_release="v2016.01"
-u_boot_release_x15="v2015.07"
+u_boot_release="v2016.11-rc3"
+u_boot_release_x15="ti-2016.05"
 #bone101_git_sha="50e01966e438ddc43b9177ad4e119e5274a0130d"
 
 #contains: rfs_username, release_date
@@ -82,6 +82,12 @@ git_clone_full () {
 	echo "${git_target_dir} : ${git_repo}" >> /opt/source/list.txt
 }
 
+install_dep_from_url () {
+	wget ${deb_url}/${deb_package}
+	dpkg -i ${deb_package}
+	rm ${deb_package}
+}
+
 cleanup_npm_cache () {
 	if [ -d /root/tmp/ ] ; then
 		rm -rf /root/tmp/ || true
@@ -121,9 +127,14 @@ install_custom_pkgs () {
 	rm openrov-geocamera-utils_1.0.0-1~35.16a26aa_armhf.deb
 
 	# UVC Driver
-	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/uvcvideo/linux-4.1.22-ti-r59-uvcvideo-geopatch_1.0.0-1~28.2dadfdf_armhf.deb
-  	dpkg -i linux-4.1.22-ti-r59-uvcvideo-geopatch_1.0.0-1~28.2dadfdf_armhf.deb
-	rm linux-4.1.22-ti-r59-uvcvideo-geopatch_1.0.0-1~28.2dadfdf_armhf.deb
+	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/uvcvideo/linux-4.4.30-ti-r65-uvcvideo-geopatch_1.0.0-1~31.1b7bcb8_armhf.deb
+  	dpkg -i linux-4.4.30-ti-r65-uvcvideo-geopatch_1.0.0-1~31.1b7bcb8_armhf.deb
+	rm linux-4.4.30-ti-r65-uvcvideo-geopatch_1.0.0-1~31.1b7bcb8_armhf.deb
+
+	# v4l-utils
+	deb_url="http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/v4l-utils"
+	deb_package="v4l-utils_1.10.1_armhf.deb"
+	install_dep_from_url
 
 	# Geomuxpp App
 	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/geomuxpp/openrov-geomuxpp_1.0.0-1~14_armhf.deb
@@ -140,15 +151,28 @@ install_custom_pkgs () {
 	dpkg -i openrov-arduino-builder_1.0.0-1~6_armhf.deb
 	rm openrov-arduino-builder_1.0.0-1~6_armhf.deb
 
-    # ZeroMQ for dynamiclly linking with MjpgStreamer App
-	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/zmq/openrov-zmq_1.0.0-1~2_armhf.deb
-	dpkg -i openrov-zmq_1.0.0-1~2_armhf.deb
-	rm openrov-zmq_1.0.0-1~2_armhf.deb	
+	# Nightrider program
+	deb_url="http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/bbb-ledstatus"
+	deb_package="bbb-ledstatus_1.0.0_armhf.deb"
+	install_dep_from_url
 	
+	# Mjpeg Streamer dependencies
+	deb_url="http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/libjpeg-turbo"
+	deb_package="libjpeg-turbo_1.5.0_armhf.deb"
+	install_dep_from_url
+
+	deb_url="http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/libuv"
+	deb_package="libuv_1.1.0_armhf.deb"
+	install_dep_from_url
+
+	deb_url="http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/uwebsockets"
+	deb_package="uwebsockets_0.11.0_armhf.deb"
+	install_dep_from_url
+
 	# MjpgStreamer App
-	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/mjpeg-streamer/openrov-mjpeg-streamer_2.0.1-10~27.27ae33f_armhf.deb	
-	dpkg -i openrov-mjpeg-streamer_2.0.1-10~27.27ae33f_armhf.deb	
-	rm openrov-mjpeg-streamer_2.0.1-10~27.27ae33f_armhf.deb	
+	deb_url="http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/mjpg-streamer"
+	deb_package="mjpg-streamer_1.1.0_armhf.deb"
+	install_dep_from_url
 }
 install_node_pkgs () {
 	if [ -f /usr/bin/npm ] ; then
@@ -362,15 +386,17 @@ install_git_repos ()
 
 	# DTB Redbuilder
 	git_repo="https://github.com/RobertCNelson/dtb-rebuilder.git"
-	git_branch="4.1-ti"	
+	git_branch="4.4-ti"	
 	git_target_dir="/opt/source/dtb-${git_branch}"
 	git_clone_branch
 
 	if [ "$MYENV" = "production" ]
 	then
 		cd ${git_target_dir}/
-		git reset --hard f52aa5296848eda984d0841508c1ddb47a97c3a2
+		git reset --hard 7a48c85b3d3aef794b3eecfe201f4db3ff416d15
 	fi	
+
+	# The beaglboard examples are now also adding 4.9-ti for dtd-rebuilder?
 
 	# BBB DTOverlays
 	git_repo="https://github.com/beagleboard/bb.org-overlays"
@@ -391,11 +417,12 @@ install_git_repos ()
 			is_kernel=$(echo ${repo_rcnee_pkg_version} | grep 4.1 || true)
 			if [ ! "x${is_kernel}" = "x" ] ; then
 				if [ -f /usr/bin/make ] ; then
-					./dtc-overlay.sh
-					make
-					make install
+					if [ ! -f /lib/firmware/BB-ADC-00A0.dtbo ] ; then
+						make
+						make install
+						make clean
+					fi
 					update-initramfs -u -k ${repo_rcnee_pkg_version}
-					rm -rf /home/${rfs_username}/git/ || true
 					make clean
 				fi
 			fi

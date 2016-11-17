@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -ex
 #
 # Copyright (c) 2012-2016 Robert Nelson <robertcnelson@gmail.com>
 #
@@ -73,6 +73,8 @@ check_defines () {
 	debian)
 		deb_components=${deb_components:-"main contrib non-free"}
 		deb_mirror=${deb_mirror:-"httpredir.debian.org/debian/"}
+		#Debian Stretch:
+		#deb_mirror=${deb_mirror:-"deb.debian.org/debian/"}
 		;;
 	ubuntu)
 		deb_components=${deb_components:-"main universe multiverse"}
@@ -377,10 +379,18 @@ if [ "x${repo_external}" = "xenable" ] ; then
 	echo "#deb-src [arch=${repo_external_arch}] ${repo_external_server} ${repo_external_dist} ${repo_external_components}" >> ${wfile}
 fi
 
+if [ "x${repo_flat}" = "xenable" ] ; then
+	echo "" >> ${wfile}
+	for component in "${repo_flat_components[@]}" ; do
+		echo "deb ${repo_flat_server} ${component}" >> ${wfile}
+		echo "#deb-src ${repo_flat_server} ${component}" >> ${wfile}
+	done
+fi
+
 if [ ! "x${repo_nodesource}" = "x" ] ; then
 	echo "" >> ${wfile}
-	echo "deb https://deb.nodesource.com/${repo_nodesource} ${deb_codename} main" >> ${wfile}
-	echo "#deb-src https://deb.nodesource.com/${repo_nodesource} ${deb_codename} main" >> ${wfile}
+	echo "deb https://deb.nodesource.com/${repo_nodesource} ${repo_nodesource_dist} main" >> ${wfile}
+	echo "#deb-src https://deb.nodesource.com/${repo_nodesource} ${repo_nodesource_dist} main" >> ${wfile}
 	echo "" >> ${wfile}
 	sudo cp -v "${OIB_DIR}/target/keyring/nodesource.gpg.key" "${tempdir}/tmp/nodesource.gpg.key"
 fi
@@ -407,6 +417,12 @@ fi
 if [ "x${repo_external}" = "xenable" ] ; then
 	if [ ! "x${repo_external_key}" = "x" ] ; then
 		sudo cp -v "${OIB_DIR}/target/keyring/${repo_external_key}" "${tempdir}/tmp/${repo_external_key}"
+	fi
+fi
+
+if [ "x${repo_flat}" = "xenable" ] ; then
+	if [ ! "x${repo_flat_key}" = "x" ] ; then
+		sudo cp -v "${OIB_DIR}/target/keyring/${repo_flat_key}" "${tempdir}/tmp/${repo_flat_key}"
 	fi
 fi
 
@@ -498,10 +514,12 @@ fi
 
 #Backward compatibility, as setup_sdcard.sh expects [lsb_release -si > /etc/rcn-ee.conf]
 echo "distro=${distro}" > /tmp/rcn-ee.conf
+echo "deb_codename=${deb_codename}" >> /tmp/rcn-ee.conf
 echo "rfs_username=${rfs_username}" >> /tmp/rcn-ee.conf
 echo "release_date=${time}" >> /tmp/rcn-ee.conf
 echo "third_party_modules=${third_party_modules}" >> /tmp/rcn-ee.conf
 echo "abi=${abi}" >> /tmp/rcn-ee.conf
+echo "image_type=${image_type}" >> /tmp/rcn-ee.conf
 sudo mv /tmp/rcn-ee.conf "${tempdir}/etc/rcn-ee.conf"
 sudo chown root:root "${tempdir}/etc/rcn-ee.conf"
 
@@ -556,6 +574,15 @@ cat > "${DIR}/chroot_script.sh" <<-__EOF__
 			dpkg-divert --local --rename --add /sbin/initctl
 			ln -s /bin/true /sbin/initctl
 		fi
+
+		apt_options="--force-yes -o Acquire::Retries=3"
+		if [ "x\${deb_codename}" = "xstretch" ] ; then
+			apt_options="-o Acquire::Retries=3"
+		fi
+		if [ "x\${deb_codename}" = "xxenial" ] ; then
+			apt_options="--allow-downgrades --allow-remove-essential --allow-change-held-packages -o Acquire::Retries=3"
+		fi
+		echo "Log: (chroot): apt using extra: [\${apt_options}]"
 	}
 
 	install_pkg_updates () {
@@ -571,9 +598,14 @@ cat > "${DIR}/chroot_script.sh" <<-__EOF__
 			apt-key add /tmp/${repo_external_key}
 			rm -f /tmp/${repo_external_key} || true
 		fi
+		if [ "x${repo_flat}" = "xenable" ] ; then
+			apt-key add /tmp/${repo_flat_key}
+			rm -f /tmp/${repo_flat_key} || true
+		fi
 
 		apt-get update
-		apt-get upgrade -y --force-yes
+		apt-get upgrade -y \${apt_options}
+		apt-get dist-upgrade -y \${apt_options}
 
 		if [ "x${chroot_very_small_image}" = "xenable" ] ; then
 			if [ -f /bin/busybox ] ; then
@@ -605,13 +637,17 @@ cat > "${DIR}/chroot_script.sh" <<-__EOF__
 		if [ ! "x${deb_additional_pkgs}" = "x" ] ; then
 			#Install the user choosen list.
 			echo "Log: (chroot) Installing: ${deb_additional_pkgs}"
-			apt-get -y --force-yes -o Acquire::Retries=3 install ${deb_additional_pkgs}
+			apt-get update
+			apt-get -y \${apt_options} install ${deb_additional_pkgs}
 		fi
 
 		if [ ! "x${repo_rcnee_pkg_version}" = "x" ] ; then
 			echo "Log: (chroot) Installing modules for: ${repo_rcnee_pkg_version}"
-			apt-get -y --force-yes install mt7601u-modules-${repo_rcnee_pkg_version} || true
-			apt-get -y --force-yes install rtl8723bu-modules-${repo_rcnee_pkg_version} || true
+			apt-get -y \${apt_options} install mt7601u-modules-${repo_rcnee_pkg_version} || true
+			apt-get -y \${apt_options} install rtl8723bu-modules-${repo_rcnee_pkg_version} || true
+			apt-get -y \${apt_options} install ti-cmem-modules-${repo_rcnee_pkg_version} || true
+			apt-get -y \${apt_options} install ti-debugss-modules-${repo_rcnee_pkg_version} || true
+			apt-get -y \${apt_options} install ti-temperature-modules-${repo_rcnee_pkg_version} || true
 			depmod -a ${repo_rcnee_pkg_version}
 			update-initramfs -u -k ${repo_rcnee_pkg_version}
 		fi
@@ -619,13 +655,13 @@ cat > "${DIR}/chroot_script.sh" <<-__EOF__
 		if [ "x${chroot_enable_debian_backports}" = "xenable" ] ; then
 			if [ ! "x${chroot_debian_backports_pkg_list}" = "x" ] ; then
 				echo "Log: (chroot) Installing (from backports): ${chroot_debian_backports_pkg_list}"
-				sudo apt-get -y --force-yes -o Acquire::Retries=3  -t ${deb_codename}-backports install ${chroot_debian_backports_pkg_list}
+				sudo apt-get -y \${apt_options} -t ${deb_codename}-backports install ${chroot_debian_backports_pkg_list}
 			fi
 		fi
 
 		if [ ! "x${repo_external_pkg_list}" = "x" ] ; then
 			echo "Log: (chroot) Installing (from external repo): ${repo_external_pkg_list}"
-			apt-get -y --force-yes -o Acquire::Retries=3 install ${repo_external_pkg_list}
+			apt-get -y \${apt_options} install ${repo_external_pkg_list}
 		fi
 	}
 
@@ -672,7 +708,7 @@ cat > "${DIR}/chroot_script.sh" <<-__EOF__
 
 	run_deborphan () {
 		echo "Log: (chroot): deborphan is not reliable, run manual and add pkg list to: [chroot_manual_deborphan_list]"
-		apt-get -y --force-yes install deborphan
+		apt-get -y \${apt_options} install deborphan
 
 		# Prevent deborphan from removing explicitly required packages
 		deborphan -A ${deb_additional_pkgs} ${repo_external_pkg_list} ${deb_include}
@@ -777,8 +813,14 @@ cat > "${DIR}/chroot_script.sh" <<-__EOF__
 		dpkg_check
 
 		if [ "x\${pkg_is_not_installed}" = "x" ] ; then
-			echo "Log: (chroot) adding admin group to /etc/sudoers"
-			echo "%admin  ALL=(ALL) ALL" >>/etc/sudoers
+			if [ -f /etc/sudoers.d/README ] ; then
+				echo "Log: (chroot) adding admin group to /etc/sudoers.d/admin"
+				echo "%admin ALL=(ALL:ALL) ALL" >/etc/sudoers.d/admin
+				chmod 0440 /etc/sudoers.d/admin
+			else
+				echo "Log: (chroot) adding admin group to /etc/sudoers"
+				echo "%admin  ALL=(ALL) ALL" >>/etc/sudoers
+			fi
 		else
 			dpkg_package_missing
 			if [ "x${rfs_disable_root}" = "xenable" ] ; then
@@ -906,8 +948,13 @@ cat > "${DIR}/chroot_script.sh" <<-__EOF__
 
 			#Remove ntpdate
 			if [ -f /usr/sbin/ntpdate ] ; then
-				apt-get remove -y --force-yes ntpdate --purge || true
+				apt-get remove -y \${apt_options} ntpdate --purge || true
 			fi
+		fi
+
+		#kill systemd/connman-wait-online.service, as it delays serial console upto 2 minutes...
+		if [ -f /etc/systemd/system/network-online.target.wants/connman-wait-online.service ] ; then
+			systemctl disable connman-wait-online.service || true
 		fi
 	}
 
@@ -991,14 +1038,14 @@ if [ -n "${early_chroot_script}" -a -r "${DIR}/target/chroot/${early_chroot_scri
 	report_size
 	echo "Calling early_chroot_script script: ${early_chroot_script}"
 	sudo cp -v "${DIR}/.project" "${tempdir}/etc/oib.project"
-	sudo /bin/sh -e "${DIR}/target/chroot/${early_chroot_script}" "${tempdir}"
+	sudo /bin/bash -e "${DIR}/target/chroot/${early_chroot_script}" "${tempdir}"
 	early_chroot_script=""
 	sudo rm -f "${tempdir}/etc/oib.project" || true
 fi
 
 chroot_mount
-sudo chroot "${tempdir}" /bin/sh -e chroot_script.sh
-echo "Log: Complete: [sudo chroot ${tempdir} /bin/sh -e chroot_script.sh]"
+sudo chroot "${tempdir}" /bin/bash -e chroot_script.sh
+echo "Log: Complete: [sudo chroot ${tempdir} /bin/bash -e chroot_script.sh]"
 
 #Do /etc/issue & /etc/issue.net after chroot_script:
 #
@@ -1076,7 +1123,7 @@ if [ -n "${chroot_script}" -a -r "${DIR}/target/chroot/${chroot_script}" ] ; the
 	echo "Calling chroot_script script: ${chroot_script}"
 	sudo cp -v "${DIR}/.project" "${tempdir}/etc/oib.project"
 	sudo cp -v "${DIR}/target/chroot/${chroot_script}" "${tempdir}/final.sh"
-	sudo chroot "${tempdir}" /bin/sh -e final.sh
+	sudo chroot "${tempdir}" /bin/bash -e final.sh
 	sudo rm -f "${tempdir}/final.sh" || true
 	sudo rm -f "${tempdir}/etc/oib.project" || true
 	chroot_script=""
@@ -1096,7 +1143,7 @@ cp -v "${DIR}/.project" "${DIR}/deploy/${export_filename}/image-builder.project"
 
 if [ -n "${chroot_after_hook}" -a -r "${DIR}/${chroot_after_hook}" ] ; then
 	report_size
-	echo "Calling chroot_after_hook script: ${chroot_after_hook}"
+	echo "Calling chroot_after_hook script: ${DIR}/${chroot_after_hook}"
 	. "${DIR}/${chroot_after_hook}"
 	chroot_after_hook=""
 fi
@@ -1119,11 +1166,11 @@ cat > "${DIR}/cleanup_script.sh" <<-__EOF__
 		apt-get clean
 		rm -rf /var/lib/apt/lists/*
 
+		if [ -d /var/cache/bb-node-red-installer ] ; then
+			rm -rf /var/cache/bb-node-red-installer|| true
+		fi
 		if [ -d /var/cache/c9-core-installer/ ] ; then
 			rm -rf /var/cache/c9-core-installer/ || true
-		fi
-		if [ -d /var/cache/ipumm-dra7xx-installer/ ] ; then
-			rm -rf /var/cache/ipumm-dra7xx-installer/ || true
 		fi
 		if [ -d /var/cache/ti-c6000-cgt-v8.0.x-installer/ ] ; then
 			rm -rf /var/cache/ti-c6000-cgt-v8.0.x-installer/ || true
@@ -1133,9 +1180,6 @@ cat > "${DIR}/cleanup_script.sh" <<-__EOF__
 		fi
 		if [ -d /var/cache/ti-pru-cgt-installer/ ] ; then
 			rm -rf /var/cache/ti-pru-cgt-installer/ || true
-		fi
-		if [ -d /var/cache/vpdma-dra7xx-installer/ ] ; then
-			rm -rf /var/cache/vpdma-dra7xx-installer/ || true
 		fi
 		rm -f /usr/sbin/policy-rc.d
 
@@ -1156,8 +1200,8 @@ __EOF__
 
 ###MUST BE LAST...
 sudo mv "${DIR}/cleanup_script.sh" "${tempdir}/cleanup_script.sh"
-sudo chroot "${tempdir}" /bin/sh -e cleanup_script.sh
-echo "Log: Complete: [sudo chroot ${tempdir} /bin/sh -e cleanup_script.sh]"
+sudo chroot "${tempdir}" /bin/bash -e cleanup_script.sh
+echo "Log: Complete: [sudo chroot ${tempdir} /bin/bash -e cleanup_script.sh]"
 
 #add /boot/uEnv.txt update script
 if [ -d "${tempdir}/etc/kernel/postinst.d/" ] ; then

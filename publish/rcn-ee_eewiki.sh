@@ -17,8 +17,8 @@ fi
 ./RootStock-NG.sh -c eewiki_minfs_debian_jessie_armhf
 ./RootStock-NG.sh -c eewiki_minfs_ubuntu_xenial_armhf
 
-debian_stable="debian-8.4"
-ubuntu_stable="ubuntu-16.04"
+debian_stable="debian-8.6"
+ubuntu_stable="ubuntu-16.04.1"
 archive="xz -z -8"
 
 cat > ${DIR}/deploy/gift_wrap_final_images.sh <<-__EOF__
@@ -60,9 +60,9 @@ if [ ! -d /mnt/farm/images/ ] ; then
 fi
 
 if [ -d /mnt/farm/images/ ] ; then
-	mkdir /mnt/farm/images/${time}/
-	cp -v ${DIR}/deploy/*.tar /mnt/farm/images/${time}/
-	cp -v ${DIR}/deploy/gift_wrap_final_images.sh /mnt/farm/images/${time}/gift_wrap_final_images.sh
-	chmod +x /mnt/farm/images/${time}/gift_wrap_final_images.sh
+	mkdir /mnt/farm/images/eewiki-${time}/
+	cp -v ${DIR}/deploy/*.tar /mnt/farm/images/eewiki-${time}/
+	cp -v ${DIR}/deploy/gift_wrap_final_images.sh /mnt/farm/images/eewiki-${time}/gift_wrap_final_images.sh
+	chmod +x /mnt/farm/images/eewiki-${time}/gift_wrap_final_images.sh
 fi
 

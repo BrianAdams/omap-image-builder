@@ -42,7 +42,7 @@ TEMPDIR=$(mktemp -d)
 
 keep_net_alive () {
 	while : ; do
-		echo "running: $*"
+		echo "syncing media... $*"
 		sleep 300
 	done
 }
@@ -153,17 +153,6 @@ detect_software () {
 		echo "See: https://github.com/RobertCNelson/netinstall/issues/20"
 		echo ""
 		exit
-	fi
-
-	#Debian Stretch, mfks.ext4 default to metadata_csum,64bit disable till u-boot works again..
-	unset ext4_options
-	unset test_mke2fs
-	LC_ALL=C mkfs.ext4 -V &> /tmp/mkfs
-	test_mkfs=$(cat /tmp/mkfs | grep mke2fs | grep 1.43 || true)
-	if [ "x${test_mkfs}" = "x" ] ; then
-		unset ext4_options
-	else
-		ext4_options="-O ^metadata_csum,^64bit"
 	fi
 
 	unset wget_version
@@ -369,41 +358,49 @@ unmount_all_drive_partitions () {
 sfdisk_partition_layout () {
 	sfdisk_options="--force --in-order --Linux --unit M"
 	sfdisk_boot_startmb="${conf_boot_startmb}"
-	sfdisk_boot_endmb="${conf_boot_endmb}"
-	sfdisk_var_startmb="${conf_var_startmb}"
+	sfdisk_boot_size_mb="${conf_boot_endmb}"
+	sfdisk_var_size_mb="${conf_var_startmb}"
+	if [ "x${option_ro_root}" = "xenable" ] ; then
+		sfdisk_var_startmb=$(($sfdisk_boot_startmb + $sfdisk_boot_size_mb))
+		sfdisk_rootfs_startmb=$(($sfdisk_var_startmb + $sfdisk_var_size_mb))
+	else
+		sfdisk_rootfs_startmb=$(($sfdisk_boot_startmb + $sfdisk_boot_size_mb))
+	fi
 
 	test_sfdisk=$(LC_ALL=C sfdisk --help | grep -m 1 -e "--in-order" || true)
 	if [ "x${test_sfdisk}" = "x" ] ; then
 		echo "log: sfdisk: 2.26.x or greater detected"
 		sfdisk_options="--force ${sfdisk_gpt}"
 		sfdisk_boot_startmb="${sfdisk_boot_startmb}M"
-		sfdisk_boot_endmb="${sfdisk_boot_endmb}M"
+		sfdisk_boot_size_mb="${sfdisk_boot_size_mb}M"
 		sfdisk_var_startmb="${sfdisk_var_startmb}M"
+		sfdisk_var_size_mb="${sfdisk_var_size_mb}M"
+		sfdisk_rootfs_startmb="${sfdisk_rootfs_startmb}M"
 	fi
 
 	if [ "x${option_ro_root}" = "xenable" ] ; then
 		echo "sfdisk: [$(LC_ALL=C sfdisk --version)]"
 		echo "sfdisk: [${sfdisk_options} ${media}]"
-		echo "sfdisk: [${sfdisk_boot_startmb},${sfdisk_boot_endmb},${sfdisk_fstype},*]"
-		echo "sfdisk: [,${sfdisk_var_startmb},,-]"
-		echo "sfdisk: [,,,-]"
+		echo "sfdisk: [${sfdisk_boot_startmb},${sfdisk_boot_size_mb},${sfdisk_fstype},*]"
+		echo "sfdisk: [${sfdisk_var_startmb},${sfdisk_var_size_mb},,-]"
+		echo "sfdisk: [${sfdisk_rootfs_startmb},,,-]"
 
 		LC_ALL=C sfdisk ${sfdisk_options} "${media}" <<-__EOF__
-			${sfdisk_boot_startmb},${sfdisk_boot_endmb},${sfdisk_fstype},*
-			,${sfdisk_var_startmb},,-
-			,,,-
+			${sfdisk_boot_startmb},${sfdisk_boot_size_mb},${sfdisk_fstype},*
+			${sfdisk_var_startmb},${sfdisk_var_size_mb},,-
+			${sfdisk_rootfs_startmb},,,-
 		__EOF__
 
 		media_rootfs_var_partition=3
 	else
 		echo "sfdisk: [$(LC_ALL=C sfdisk --version)]"
 		echo "sfdisk: [${sfdisk_options} ${media}]"
-		echo "sfdisk: [${sfdisk_boot_startmb},${sfdisk_boot_endmb},${sfdisk_fstype},*]"
-		echo "sfdisk: [,,,-]"
+		echo "sfdisk: [${sfdisk_boot_startmb},${sfdisk_boot_size_mb},${sfdisk_fstype},*]"
+		echo "sfdisk: [${sfdisk_rootfs_startmb},,,-]"
 
 		LC_ALL=C sfdisk ${sfdisk_options} "${media}" <<-__EOF__
-			${sfdisk_boot_startmb},${sfdisk_boot_endmb},${sfdisk_fstype},*
-			,,,-
+			${sfdisk_boot_startmb},${sfdisk_boot_size_mb},${sfdisk_fstype},*
+			${sfdisk_rootfs_startmb},,,-
 		__EOF__
 
 	fi
@@ -414,25 +411,31 @@ sfdisk_partition_layout () {
 sfdisk_single_partition_layout () {
 	sfdisk_options="--force --in-order --Linux --unit M"
 	sfdisk_boot_startmb="${conf_boot_startmb}"
-	sfdisk_var_startmb="${conf_var_startmb}"
+	sfdisk_var_size_mb="${conf_var_startmb}"
+	if [ "x${option_ro_root}" = "xenable" ] ; then
+		sfdisk_rootfs_startmb=$(($sfdisk_boot_startmb + $sfdisk_var_size_mb))
+	fi
 
 	test_sfdisk=$(LC_ALL=C sfdisk --help | grep -m 1 -e "--in-order" || true)
 	if [ "x${test_sfdisk}" = "x" ] ; then
 		echo "log: sfdisk: 2.26.x or greater detected"
 		sfdisk_options="--force ${sfdisk_gpt}"
 		sfdisk_boot_startmb="${sfdisk_boot_startmb}M"
-		sfdisk_var_startmb="${sfdisk_var_startmb}M"
+		sfdisk_var_size_mb="${sfdisk_var_size_mb}M"
+		if [ "x${option_ro_root}" = "xenable" ] ; then
+			sfdisk_rootfs_startmb="${sfdisk_rootfs_startmb}M"
+		fi
 	fi
 
 	if [ "x${option_ro_root}" = "xenable" ] ; then
 		echo "sfdisk: [$(LC_ALL=C sfdisk --version)]"
 		echo "sfdisk: [${sfdisk_options} ${media}]"
-		echo "sfdisk: [${sfdisk_boot_startmb},${sfdisk_boot_endmb},${sfdisk_fstype},*]"
-		echo "sfdisk: [,,,-]"
+		echo "sfdisk: [${sfdisk_boot_startmb},${sfdisk_var_size_mb},${sfdisk_fstype},*]"
+		echo "sfdisk: [${sfdisk_rootfs_startmb},,,-]"
 
 		LC_ALL=C sfdisk ${sfdisk_options} "${media}" <<-__EOF__
-			${sfdisk_boot_startmb},${sfdisk_var_startmb},${sfdisk_fstype},*
-			,,,-
+			${sfdisk_boot_startmb},${sfdisk_var_size_mb},${sfdisk_fstype},*
+			${sfdisk_rootfs_startmb},,,-
 		__EOF__
 
 		media_rootfs_var_partition=2
@@ -585,12 +588,17 @@ format_rootfs_partition () {
 	if [ "x${build_img_file}" = "xenable" ] ; then
 		rootfs_drive="${conf_root_device}p${media_rootfs_partition}"
 	else
-		unset rootfs_uuid
-		rootfs_uuid=$(/sbin/blkid -c /dev/null -s UUID -o value ${mkfs_partition} || true)
-		if [ ! "x${rootfs_uuid}" = "x" ] ; then
-			rootfs_drive="UUID=${rootfs_uuid}"
-		else
+		#x15, ti v4.4.x uuid is broken, but we have u-boot patched for mmc0=microSD, mmc1=eMMC
+		if [ "x${conf_board}" = "xbeagle_x15" ] ; then
 			rootfs_drive="${conf_root_device}p${media_rootfs_partition}"
+		else
+			unset rootfs_uuid
+			rootfs_uuid=$(/sbin/blkid -c /dev/null -s UUID -o value ${mkfs_partition} || true)
+			if [ ! "x${rootfs_uuid}" = "x" ] ; then
+				rootfs_drive="UUID=${rootfs_uuid}"
+			else
+				rootfs_drive="${conf_root_device}p${media_rootfs_partition}"
+			fi
 		fi
 	fi
 
@@ -623,6 +631,21 @@ create_partitions () {
 	media_boot_partition=1
 	media_rootfs_partition=2
 
+	unset ext4_options
+
+	if [ ! "x${uboot_supports_csum}" = "xtrue" ] ; then
+		#Debian Stretch, mfks.ext4 default to metadata_csum, 64bit disable till u-boot works again..
+		unset ext4_options
+		unset test_mke2fs
+		LC_ALL=C mkfs.ext4 -V &> /tmp/mkfs
+		test_mkfs=$(cat /tmp/mkfs | grep mke2fs | grep 1.43 || true)
+		if [ "x${test_mkfs}" = "x" ] ; then
+			unset ext4_options
+		else
+			ext4_options="-O ^metadata_csum,^64bit"
+		fi
+	fi
+
 	echo ""
 	case "${bootloader_location}" in
 	fatfs_boot)
@@ -652,8 +675,15 @@ create_partitions () {
 		dd_spl_uboot_boot
 		dd_uboot_boot
 		bootloader_installed=1
-		sfdisk_single_partition_layout
-		media_rootfs_partition=1
+		if [ "x${enable_fat_partition}" = "xenable" ] ; then
+			conf_boot_endmb=${conf_boot_endmb:-"96"}
+			conf_boot_fstype=${conf_boot_fstype:-"fat"}
+			sfdisk_fstype=${sfdisk_fstype:-"0xE"}
+			sfdisk_partition_layout
+		else
+			sfdisk_single_partition_layout
+			media_rootfs_partition=1
+		fi
 		;;
 	*)
 		echo "Using sfdisk to create partition layout"
@@ -801,6 +831,9 @@ populate_boot () {
 		fi
 
 		echo "" >> ${wfile}
+	fi
+
+	if [ "x${conf_board}" = "xam335x_boneblack" ] || [ "x${conf_board}" = "xam335x_evm" ] || [ "x${conf_board}" = "xarduino-tre" ] || [ "x${conf_board}" = "xam335x_blank_bbbw" ] ; then
 
 		wfile="${TEMPDIR}/disk/nfs-uEnv.txt"
 		echo "##Rename as: uEnv.txt to boot via nfs" > ${wfile}
@@ -1040,6 +1073,8 @@ populate_rootfs () {
 		fi
 
 		echo "Transfer of data is Complete, now syncing data to disk..."
+		echo "Disk Size"
+		du -sh ${TEMPDIR}/disk/
 		sync
 		sync
 
@@ -1060,7 +1095,20 @@ populate_rootfs () {
 			if [ ! "x${oem_flasher_job}" = "x" ] ; then
 				cp -v "${oem_flasher_job}" "${TEMPDIR}/disk/opt/emmc/job.txt"
 				sync
+				if [ ! "x${oem_flasher_eeprom}" = "x" ] ; then
+					echo "conf_eeprom_file=${oem_flasher_eeprom}" >> "${TEMPDIR}/disk/opt/emmc/job.txt"
+					if [ ! "x${conf_eeprom_compare}" = "x" ] ; then
+						echo "conf_eeprom_compare=${conf_eeprom_compare}" >> "${TEMPDIR}/disk/opt/emmc/job.txt"
+					else
+						echo "conf_eeprom_compare=335" >> "${TEMPDIR}/disk/opt/emmc/job.txt"
+					fi
+				fi
 			fi
+			echo "-----------------------------"
+			cat "${TEMPDIR}/disk/opt/emmc/job.txt"
+			echo "-----------------------------"
+			echo "Disk Size, with *.img"
+			du -sh ${TEMPDIR}/disk/
 		fi
 
 		echo "-----------------------------"
@@ -1091,7 +1139,7 @@ populate_rootfs () {
 	else
 		echo "#dtb=" >> ${wfile}
 
-		if [ "x${conf_board}" = "xam335x_boneblack" ] || [ "x${conf_board}" = "xam335x_evm" ] ; then
+		if [ "x${conf_board}" = "xam335x_boneblack" ] || [ "x${conf_board}" = "xam335x_evm" ] || [ "x${conf_board}" = "xam335x_blank_bbbw" ] ; then
 			echo "" >> ${wfile}
 			echo "##BeagleBone Black/Green dtb's for v4.1.x (BeagleBone White just works..)" >> ${wfile}
 
@@ -1128,7 +1176,7 @@ populate_rootfs () {
 		cmdline="${cmdline} init=/lib/systemd/systemd"
 	fi
 
-	if [ "x${conf_board}" = "xam335x_boneblack" ] || [ "x${conf_board}" = "xam335x_evm" ] ; then
+	if [ "x${enable_cape_universal}" = "xenable" ] ; then
 		cmdline="${cmdline} cape_universal=enable"
 	fi
 
@@ -1154,7 +1202,9 @@ populate_rootfs () {
 		echo "#cape_disable=capemgr.disable_partno=" >> ${wfile}
 		echo "#cape_enable=capemgr.enable_partno=" >> ${wfile}
 		echo "" >> ${wfile}
+	fi
 
+	if [ "x${conf_board}" = "xam335x_boneblack" ] || [ "x${conf_board}" = "xam335x_evm" ] || [ "x${conf_board}" = "xam335x_blank_bbbw" ] ; then
 		echo "##Example v4.1.x" >> ${wfile}
 		echo "#cape_disable=bone_capemgr.disable_partno=" >> ${wfile}
 		echo "#cape_enable=bone_capemgr.enable_partno=" >> ${wfile}
@@ -1166,13 +1216,26 @@ populate_rootfs () {
 		fi
 
 		if [ "x${usb_flasher}" = "xenable" ] ; then
-			echo "cmdline=init=/opt/scripts/tools/eMMC/init-eMMC-flasher-from-usb-media.sh" >> ${wfile}
+			if [ ! "x${oem_flasher_script}" = "x" ] ; then
+				echo "cmdline=init=/opt/scripts/tools/eMMC/${oem_flasher_script}" >> ${wfile}
+			else
+				echo "cmdline=init=/opt/scripts/tools/eMMC/init-eMMC-flasher-from-usb-media.sh" >> ${wfile}
+			fi
 		elif [ "x${emmc_flasher}" = "xenable" ] ; then
 			echo "##enable Generic eMMC Flasher:" >> ${wfile}
 			echo "cmdline=init=/opt/scripts/tools/eMMC/init-eMMC-flasher-v3.sh" >> ${wfile}
 		elif [ "x${bbg_flasher}" = "xenable" ] ; then
 			echo "##enable BBG: eMMC Flasher:" >> ${wfile}
 			echo "cmdline=init=/opt/scripts/tools/eMMC/init-eMMC-flasher-v3-bbg.sh" >> ${wfile}
+		elif [ "x${bbgw_flasher}" = "xenable" ] ; then
+			echo "##enable BBG: eMMC Flasher:" >> ${wfile}
+			echo "cmdline=init=/opt/scripts/tools/eMMC/init-eMMC-flasher-v3-bbgw.sh" >> ${wfile}
+		elif [ "x${m10a_flasher}" = "xenable" ] ; then
+			echo "##enable m10a: eMMC Flasher:" >> ${wfile}
+			echo "cmdline=init=/opt/scripts/tools/eMMC/init-eMMC-flasher-v3-m10a.sh" >> ${wfile}
+		elif [ "x${bbbw_flasher}" = "xenable" ] ; then
+			echo "##enable bbbw: eMMC Flasher:" >> ${wfile}
+			echo "cmdline=init=/opt/scripts/tools/eMMC/init-eMMC-flasher-v3-bbbw.sh" >> ${wfile}
 		elif [ "x${a335_flasher}" = "xenable" ] ; then
 			echo "##enable a335: eeprom Flasher:" >> ${wfile}
 			echo "cmdline=init=/opt/scripts/tools/eMMC/init-eMMC-flasher-a335.sh" >> ${wfile}
@@ -1184,14 +1247,36 @@ populate_rootfs () {
 		echo "" >> ${wfile}
 	else
 		if [ "x${usb_flasher}" = "xenable" ] ; then
-			echo "cmdline=init=/opt/scripts/tools/eMMC/init-eMMC-flasher-from-usb-media.sh" >> ${wfile}
+			if [ ! "x${oem_flasher_script}" = "x" ] ; then
+				echo "cmdline=init=/opt/scripts/tools/eMMC/${oem_flasher_script}" >> ${wfile}
+			else
+				echo "cmdline=init=/opt/scripts/tools/eMMC/init-eMMC-flasher-from-usb-media.sh" >> ${wfile}
+			fi
 		elif [ "x${emmc_flasher}" = "xenable" ] ; then
-			echo "##enable Generic eMMC Flasher:" >> ${wfile}
-			echo "cmdline=init=/opt/scripts/tools/eMMC/init-eMMC-flasher-v3.sh" >> ${wfile}
+			if [ "x${conf_board}" = "xbeagle_x15" ] ; then
+				echo "##enable x15: eMMC Flasher:" >> ${wfile}
+				echo "cmdline=init=/opt/scripts/tools/eMMC/init-eMMC-flasher-v3-x15_b1.sh" >> ${wfile}
+			else
+				echo "##enable Generic eMMC Flasher:" >> ${wfile}
+				echo "cmdline=init=/opt/scripts/tools/eMMC/init-eMMC-flasher-v3.sh" >> ${wfile}
+			fi
 		elif [ "x${a335_flasher}" = "xenable" ] ; then
 			echo "##enable a335: eeprom Flasher:" >> ${wfile}
 			echo "cmdline=init=/opt/scripts/tools/eMMC/init-eMMC-flasher-a335.sh" >> ${wfile}
+		else
+			if [ "x${conf_board}" = "xbeagle_x15" ] ; then
+				echo "##enable x15: eMMC Flasher:" >> ${wfile}
+				echo "##make sure, these tools are installed: dosfstools rsync" >> ${wfile}
+				echo "#cmdline=init=/opt/scripts/tools/eMMC/init-eMMC-flasher-v3-x15_b1.sh" >> ${wfile}
+			fi
 		fi
+	fi
+
+	#oob out of box experience:
+	if [ ! "x${oobe_cape}" = "x" ] ; then
+		echo "" >> ${wfile}
+		echo "dtb=am335x-boneblack-overlay.dtb" >> ${wfile}
+		echo "cape_enable=bone_capemgr.enable_partno=${oobe_cape}" >> ${wfile}
 	fi
 
 	#am335x_boneblack is a custom u-boot to ignore empty factory eeproms...
@@ -1200,6 +1285,10 @@ populate_rootfs () {
 	else
 		board=${conf_board}
 	fi
+
+	echo "/boot/uEnv.txt---------------"
+	cat ${wfile}
+	echo "-----------------------------"
 
 	wfile="${TEMPDIR}/disk/boot/SOC.sh"
 	generate_soc
@@ -1250,62 +1339,75 @@ populate_rootfs () {
 			echo "exec /sbin/getty 115200 ${SERIAL}" >> ${wfile}
 		fi
 
-		wfile="${TEMPDIR}/disk/etc/network/interfaces"
-		echo "# This file describes the network interfaces available on your system" > ${wfile}
-		echo "# and how to activate them. For more information, see interfaces(5)." >> ${wfile}
-		echo "" >> ${wfile}
-		echo "source /etc/network/interfaces.d/*.cfg" >>  ${wfile} 
-		echo "# The loopback network interface" >> ${wfile}
-		echo "auto lo" >> ${wfile}
-		echo "iface lo inet loopback" >> ${wfile}
-		echo "" >> ${wfile}
-		echo "# The primary network interface" >> ${wfile}
+		if [ "x${DISABLE_ETH}" != "xskip" ] ; then
+			wfile="${TEMPDIR}/disk/etc/network/interfaces"
+			echo "# This file describes the network interfaces available on your system" > ${wfile}
+			echo "# and how to activate them. For more information, see interfaces(5)." >> ${wfile}
+			echo "" >> ${wfile}
+		  echo "source /etc/network/interfaces.d/*.cfg" >>  ${wfile}
+			echo "# The loopback network interface" >> ${wfile}
+			echo "auto lo" >> ${wfile}
+			echo "iface lo inet loopback" >> ${wfile}
+			echo "" >> ${wfile}
+			echo "# The primary network interface" >> ${wfile}
 
-		if [ "${DISABLE_ETH}" ] ; then
-			echo "#auto eth0" >> ${wfile}
-			echo "#iface eth0 inet dhcp" >> ${wfile}
-		else
-			echo "auto eth0"  >> ${wfile}
-			echo "iface eth0 inet dhcp" >> ${wfile}
-		fi
+			if [ "${DISABLE_ETH}" ] ; then
+				echo "#auto eth0" >> ${wfile}
+				echo "#iface eth0 inet dhcp" >> ${wfile}
+			else
+				echo "auto eth0"  >> ${wfile}
+				echo "iface eth0 inet dhcp" >> ${wfile}
+			fi
 
-		#if we have systemd & wicd-gtk, disable eth0 in /etc/network/interfaces
-		if [ -f ${TEMPDIR}/disk/lib/systemd/systemd ] ; then
-			if [ -f ${TEMPDIR}/disk/usr/bin/wicd-gtk ] ; then
+			#if we have systemd & wicd-gtk, disable eth0 in /etc/network/interfaces
+			if [ -f ${TEMPDIR}/disk/lib/systemd/systemd ] ; then
+				if [ -f ${TEMPDIR}/disk/usr/bin/wicd-gtk ] ; then
+					sed -i 's/auto eth0/#auto eth0/g' ${wfile}
+					sed -i 's/allow-hotplug eth0/#allow-hotplug eth0/g' ${wfile}
+					sed -i 's/iface eth0 inet dhcp/#iface eth0 inet dhcp/g' ${wfile}
+				fi
+			fi
+
+			#if we have connman, disable eth0 in /etc/network/interfaces
+			if [ -f ${TEMPDIR}/disk/etc/init.d/connman ] ; then
 				sed -i 's/auto eth0/#auto eth0/g' ${wfile}
 				sed -i 's/allow-hotplug eth0/#allow-hotplug eth0/g' ${wfile}
 				sed -i 's/iface eth0 inet dhcp/#iface eth0 inet dhcp/g' ${wfile}
 			fi
+
+			echo "# Example to keep MAC address between reboots" >> ${wfile}
+			echo "#hwaddress ether DE:AD:BE:EF:CA:FE" >> ${wfile}
+
+			echo "" >> ${wfile}
+
+			echo "##connman: ethX static config" >> ${wfile}
+			echo "#connmanctl services" >> ${wfile}
+			echo "#Using the appropriate ethernet service, tell connman to setup a static IP address for that service:" >> ${wfile}
+			echo "#sudo connmanctl config <service> --ipv4 manual <ip_addr> <netmask> <gateway> --nameservers <dns_server>" >> ${wfile}
+
+			echo "" >> ${wfile}
+
+			echo "##connman: WiFi" >> ${wfile}
+			echo "#" >> ${wfile}
+			echo "#connmanctl" >> ${wfile}
+			echo "#connmanctl> tether wifi disable" >> ${wfile}
+			echo "#connmanctl> enable wifi" >> ${wfile}
+			echo "#connmanctl> scan wifi" >> ${wfile}
+			echo "#connmanctl> services" >> ${wfile}
+			echo "#connmanctl> agent on" >> ${wfile}
+			echo "#connmanctl> connect wifi_*_managed_psk" >> ${wfile}
+			echo "#connmanctl> quit" >> ${wfile}
+
+			echo "" >> ${wfile}
+
+			echo "# Ethernet/RNDIS gadget (g_ether)" >> ${wfile}
+			echo "# Used by: /opt/scripts/boot/autoconfigure_usb0.sh" >> ${wfile}
+			echo "iface usb0 inet static" >> ${wfile}
+			echo "    address 192.168.7.2" >> ${wfile}
+			echo "    netmask 255.255.255.252" >> ${wfile}
+			echo "    network 192.168.7.0" >> ${wfile}
+			echo "    gateway 192.168.7.1" >> ${wfile}
 		fi
-
-		#if we have connman, disable eth0 in /etc/network/interfaces
-		if [ -f ${TEMPDIR}/disk/etc/init.d/connman ] ; then
-			sed -i 's/auto eth0/#auto eth0/g' ${wfile}
-			sed -i 's/allow-hotplug eth0/#allow-hotplug eth0/g' ${wfile}
-			sed -i 's/iface eth0 inet dhcp/#iface eth0 inet dhcp/g' ${wfile}
-		fi
-
-		echo "# Example to keep MAC address between reboots" >> ${wfile}
-		echo "#hwaddress ether DE:AD:BE:EF:CA:FE" >> ${wfile}
-
-		echo "" >> ${wfile}
-		echo "# The secondary network interface" >> ${wfile}
-		echo "#auto eth1" >> ${wfile}
-		echo "#iface eth1 inet dhcp" >> ${wfile}
-
-		echo "" >> ${wfile}
-
-		echo "# WiFi use: -> connmanctl" >> ${wfile}
-
-		echo "" >> ${wfile}
-
-		echo "# Ethernet/RNDIS gadget (g_ether)" >> ${wfile}
-		echo "# Used by: /opt/scripts/boot/autoconfigure_usb0.sh" >> ${wfile}
-		echo "iface usb0 inet static" >> ${wfile}
-		echo "    address 192.168.7.2" >> ${wfile}
-		echo "    netmask 255.255.255.252" >> ${wfile}
-		echo "    network 192.168.7.0" >> ${wfile}
-		echo "    gateway 192.168.7.1" >> ${wfile}
 
 		if [ -f ${TEMPDIR}/disk/var/www/index.html ] ; then
 			rm -f ${TEMPDIR}/disk/var/www/index.html || true
@@ -1339,7 +1441,7 @@ populate_rootfs () {
 		echo "" >> ${TEMPDIR}/disk${file}
 	fi
 
-	if [ "x${conf_board}" = "xam335x_boneblack" ] || [ "x${conf_board}" = "xam335x_evm" ] || [ "x${conf_board}" = "xarduino-tre" ] ; then
+	if [ "x${conf_board}" = "xam335x_boneblack" ] || [ "x${conf_board}" = "xam335x_evm" ] || [ "x${conf_board}" = "xarduino-tre" ] || [ "x${conf_board}" = "xam335x_blank_bbbw" ] ; then
 
 		file="/etc/udev/rules.d/70-persistent-net.rules"
 		echo "" > ${TEMPDIR}/disk${file}
@@ -1400,6 +1502,12 @@ populate_rootfs () {
 
 		wfile="/etc/hostname"
 		echo "${new_hostname}" > ${TEMPDIR}/disk${wfile}
+	fi
+
+	# setuid root ping+ping6 - capabilities does not survive tar
+	if [ -x  ${TEMPDIR}/disk/bin/ping ] ; then
+		echo "making ping/ping6 setuid root"
+		chmod u+s ${TEMPDIR}/disk//bin/ping ${TEMPDIR}/disk//bin/ping6
 	fi
 
 	cd ${TEMPDIR}/disk/
@@ -1495,7 +1603,18 @@ process_dtb_conf () {
 	echo "-----------------------------"
 
 	#defaults, if not set...
-	conf_boot_startmb=${conf_boot_startmb:-"1"}
+	case "${bootloader_location}" in
+	fatfs_boot)
+		conf_boot_startmb=${conf_boot_startmb:-"1"}
+		;;
+	dd_uboot_boot|dd_spl_uboot_boot)
+		conf_boot_startmb=${conf_boot_startmb:-"4"}
+		;;
+	*)
+		conf_boot_startmb=${conf_boot_startmb:-"4"}
+		;;
+	esac
+
 	#https://wiki.linaro.org/WorkingGroups/KernelArchived/Projects/FlashCardSurvey
 	conf_root_device=${conf_root_device:-"/dev/mmcblk0"}
 
@@ -1551,7 +1670,7 @@ check_dtb_board () {
 
 usage () {
 	echo "usage: sudo $(basename $0) --mmc /dev/sdX --dtb <dev board>"
-	#tabed to match 
+	#tabed to match
 		cat <<-__EOF__
 			-----------------------------
 			Bugs email: "bugs at rcn-ee.com"
@@ -1676,6 +1795,14 @@ while [ ! -z "$1" ] ; do
 		oem_blank_eeprom="enable"
 		bbg_flasher="enable"
 		;;
+	--bbgw-flasher)
+		oem_blank_eeprom="enable"
+		bbgw_flasher="enable"
+		;;
+	--m10a-flasher)
+		oem_blank_eeprom="enable"
+		m10a_flasher="enable"
+		;;
 	--bbb-usb-flasher|--usb-flasher|--oem-flasher)
 		oem_blank_eeprom="enable"
 		usb_flasher="enable"
@@ -1684,8 +1811,16 @@ while [ ! -z "$1" ] ; do
 		oem_blank_eeprom="enable"
 		emmc_flasher="enable"
 		;;
+	--bbbw-flasher)
+		oem_blank_eeprom="enable"
+		bbbw_flasher="enable"
+		;;
 	--bbb-old-bootloader-in-emmc)
 		bbb_old_bootloader_in_emmc="enable"
+		;;
+	--oem-flasher-script)
+		checkparm $2
+		oem_flasher_script="$2"
 		;;
 	--oem-flasher-img)
 		checkparm $2
@@ -1706,12 +1841,22 @@ while [ ! -z "$1" ] ; do
 	--enable-systemd)
 		enable_systemd="enabled"
 		;;
+	--enable-cape-universal)
+		enable_cape_universal="enable"
+		;;
 	--offline)
 		offline=1
 		;;
 	--kernel)
 		checkparm $2
 		kernel_override="$2"
+		;;
+	--enable-cape)
+		checkparm $2
+		oobe_cape="$2"
+		;;
+	--enable-fat-partition)
+		enable_fat_partition="enable"
 		;;
 	esac
 	shift

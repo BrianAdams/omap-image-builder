@@ -1,8 +1,10 @@
 #!/bin/bash -e
 
 time=$(date +%Y-%m-%d)
-mirror_dir="/var/www/html/rcn-ee.us/rootfs/"
+mirror_dir="/var/www/html/rcn-ee.us/rootfs/bb.org/testing"
 DIR="$PWD"
+
+git pull --no-edit https://github.com/beagleboard/image-builder master
 
 export apt_proxy=apt-proxy:3142/
 
@@ -10,27 +12,12 @@ if [ -d ./deploy ] ; then
 	sudo rm -rf ./deploy || true
 fi
 
-if [ ! -f jenkins.build ] ; then
-./RootStock-NG.sh -c rcn-ee_console_debian_jessie_armhf
-./RootStock-NG.sh -c rcn-ee_console_debian_stretch_armhf
-./RootStock-NG.sh -c rcn-ee_console_ubuntu_xenial_armhf
-else
-	mkdir -p ${DIR}/deploy/ || true
-fi
+./RootStock-NG.sh -c bb.org-debian-jessie-oemflasher
 
- debian_stable="debian-8.6-console-armhf-${time}"
-debian_testing="debian-stretch-console-armhf-${time}"
- ubuntu_stable="ubuntu-16.04.1-console-armhf-${time}"
-#ubuntu_testing="ubuntu-16.04.1-console-armhf-${time}"
+debian_jessie_oemflasher="debian-8.6-oemflasher-armhf-${time}"
 
 archive="xz -z -8"
 
-beaglebone="--dtb beaglebone --bbb-old-bootloader-in-emmc \
---rootfs_label rootfs --enable-cape-universal"
-
-omap3_beagle_xm="--dtb omap3-beagle-xm --rootfs_label rootfs"
-omap5_uevm="--dtb omap5-uevm --rootfs_label rootfs"
-am57xx_beagle_x15="--dtb am57xx-beagle-x15 --rootfs_label rootfs"
 
 cat > ${DIR}/deploy/gift_wrap_final_images.sh <<-__EOF__
 #!/bin/bash
@@ -122,58 +109,17 @@ generate_img () {
         fi
 }
 
-#Debian Stable
-base_rootfs="${debian_stable}" ; blend="elinux" ; extract_base_rootfs
+###archive *.tar
+base_rootfs="${debian_jessie_oemflasher}"     ; blend="oemflasher"      ; archive_base_rootfs
 
-options="--img BBB-eMMC-flasher-\${base_rootfs}   ${beaglebone}        --emmc-flasher" ; generate_img
-options="--img bone-\${base_rootfs}               ${beaglebone}"                       ; generate_img
-options="--img bbxm-\${base_rootfs}               ${omap3_beagle_xm}"                  ; generate_img
-options="--img bbx15-eMMC-flasher-\${base_rootfs} ${am57xx_beagle_x15} --emmc-flasher" ; generate_img
-options="--img bbx15-\${base_rootfs}              ${am57xx_beagle_x15}"                ; generate_img
-options="--img omap5-uevm-\${base_rootfs}         ${omap5_uevm}"                       ; generate_img
-
-#Ubuntu Stable
-base_rootfs="${ubuntu_stable}" ; blend="elinux" ; extract_base_rootfs
-
-options="--img BBB-eMMC-flasher-\${base_rootfs}   ${beaglebone} --emmc-flasher"        ; generate_img
-options="--img bone-\${base_rootfs}               ${beaglebone}"                       ; generate_img
-options="--img bbxm-\${base_rootfs}               ${omap3_beagle_xm}"                  ; generate_img
-options="--img bbx15-eMMC-flasher-\${base_rootfs} ${am57xx_beagle_x15} --emmc-flasher" ; generate_img
-options="--img bbx15-\${base_rootfs}              ${am57xx_beagle_x15}"                ; generate_img
-options="--img omap5-uevm-\${base_rootfs}         ${omap5_uevm}"                       ; generate_img
-
-#Archive tar:
-base_rootfs="${debian_stable}"  ; blend="elinux" ; archive_base_rootfs
-base_rootfs="${ubuntu_stable}"  ; blend="elinux" ; archive_base_rootfs
-base_rootfs="${debian_testing}" ; blend="elinux" ; archive_base_rootfs
-#base_rootfs="${ubuntu_testing}" ; blend="elinux" ; archive_base_rootfs
-
-#Archive img:
-base_rootfs="${debian_stable}" ; blend="microsd"
-wfile="bone-\${base_rootfs}-2gb"       ; archive_img
-wfile="bbxm-\${base_rootfs}-2gb"       ; archive_img
-wfile="bbx15-\${base_rootfs}-2gb"      ; archive_img
-wfile="omap5-uevm-\${base_rootfs}-2gb" ; archive_img
-
-base_rootfs="${ubuntu_stable}" ; blend="microsd"
-wfile="bone-\${base_rootfs}-2gb"       ; archive_img
-wfile="bbxm-\${base_rootfs}-2gb"       ; archive_img
-wfile="bbx15-\${base_rootfs}-2gb"      ; archive_img
-wfile="omap5-uevm-\${base_rootfs}-2gb" ; archive_img
-
-base_rootfs="${debian_stable}" ; blend="flasher"
-wfile="BBB-eMMC-flasher-\${base_rootfs}-2gb"   ; archive_img
-wfile="bbx15-eMMC-flasher-\${base_rootfs}-2gb" ; archive_img
-
-base_rootfs="${ubuntu_stable}" ; blend="flasher"
-wfile="BBB-eMMC-flasher-\${base_rootfs}-2gb"   ; archive_img
-wfile="bbx15-eMMC-flasher-\${base_rootfs}-2gb" ; archive_img
+#
+base_rootfs="${debian_jessie_oemflasher}" ; blend="oemflasher"
 
 __EOF__
 
 chmod +x ${DIR}/deploy/gift_wrap_final_images.sh
 
-image_prefix="elinux"
+image_prefix="oemflasher"
 #node:
 if [ ! -d /var/www/html/farm/images/ ] ; then
 	if [ ! -d /mnt/farm/images/ ] ; then
@@ -198,3 +144,4 @@ if [ -d /var/www/html/farm/images/ ] ; then
 	chmod +x /var/www/html/farm/images/${image_prefix}-${time}/gift_wrap_final_images.sh || true
 	sudo chown -R apt-cacher-ng:apt-cacher-ng /var/www/html/farm/images/${image_prefix}-${time}/ || true
 fi
+
