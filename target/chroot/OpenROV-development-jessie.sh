@@ -119,9 +119,9 @@ install_custom_pkgs () {
 	rm nginx-light_1.9.10-1~bpo8\ 2_armhf.deb
 
 	# ZeroMQ
-	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/zmq/openrov-zmq_1.0.0-1~2_armhf.deb
-	dpkg -i openrov-zmq_1.0.0-1~2_armhf.deb
-	rm openrov-zmq_1.0.0-1~2_armhf.deb
+	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/libzmq/libzmq_4.1.6_armhf.deb
+	dpkg -i libzmq_4.1.6_armhf.deb
+	rm libzmq_4.1.6_armhf.deb
 
 	# GC6500 Apps
 	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/geocamera-libs/openrov-geocamera-utils_1.0.0-1~35.16a26aa_armhf.deb
@@ -139,9 +139,9 @@ install_custom_pkgs () {
 	install_dep_from_url
 
 	# Geomuxpp App
-	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/geomuxpp/openrov-geomuxpp_1.0.0-1~14_armhf.deb
-	dpkg -i openrov-geomuxpp_1.0.0-1~14_armhf.deb
-	rm openrov-geomuxpp_1.0.0-1~14_armhf.deb
+	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/geomuxpp/geomuxpp_1.0.1_armhf.deb
+	dpkg -i geomuxpp_1.0.1_armhf.deb
+	rm geomuxpp_1.0.1_armhf.deb
 
 	# Arduino Core
 	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/arduino/openrov-arduino_1.0.0-1~21_armhf.deb && \
