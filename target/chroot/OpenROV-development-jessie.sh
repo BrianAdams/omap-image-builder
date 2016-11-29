@@ -259,7 +259,7 @@ install_node_pkgs () {
 		if [ -f ${git_target_dir}/.git/config ] ; then
 			cd ${git_target_dir}/
 			#These are the setting for the deploy:dev-image, change when deploying prod-image
-			TERM=dumb PKG_CONFIG_PATH=/dev/null npm run-script build:dev
+			TERM=dumb PKG_CONFIG_PATH="/dev/null" npm run-script build:dev
 
 			wfile="/lib/systemd/system/orov-cockpit.service"
 			echo "[Unit]" > ${wfile}
