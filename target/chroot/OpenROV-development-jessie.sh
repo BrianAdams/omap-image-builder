@@ -271,7 +271,9 @@ install_node_pkgs () {
 			if [ "$MYENV" = "production" ]
 			then
 			  echo "Restart=always" >> ${wfile}
-			fi			
+			fi
+			#Temporariy add for first load debugging
+			echo "Environment=DEBUG=*"			
 			echo "NonBlocking=True" >> ${wfile}
 			echo "WorkingDirectory=/opt/openrov/cockpit/src" >> ${wfile}
 			echo "ExecStart=/usr/bin/node cockpit.js" >> ${wfile}
