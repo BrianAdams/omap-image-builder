@@ -467,7 +467,7 @@ speedUpBootTime () {
 	sed -i 's/Type=oneshot/Type=simple/g' /lib/systemd/system/generic-board-startup.service
 	
 	#This driver has been timing out during load
-	systemctl disable bb-wl18xx-tether.service	
+	#systemctl disable bb-wl18xx-tether.service	
 }
 
 todo () {
