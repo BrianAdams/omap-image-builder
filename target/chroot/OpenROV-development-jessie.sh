@@ -466,9 +466,8 @@ patchdnsmasq () {
 speedUpBootTime () {
 	sed -i 's/Type=oneshot/Type=simple/g' /lib/systemd/system/generic-board-startup.service
 	
-	mkdir /lib/systemd/system/networking.service.d
-	printf "[Service]\nTimeoutStartSec=15" > /lib/systemd/system/networking.service.d/network-pre.conf
-
+	#This driver has been timing out during load
+	systemctl disable bb-wl18xx-tether.service	
 }
 
 todo () {
