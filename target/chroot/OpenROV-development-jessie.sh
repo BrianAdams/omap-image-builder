@@ -341,8 +341,22 @@ install_node_pkgs () {
 			TERM=dumb npm install -g wetty@0.2.0
 		else
 	  		TERM=dumb npm install -g wetty
-		fi			
+		fi
 
+		mkdir -p /etc/nginx/locations-enabled
+		wfile="/etc/nginx/locations-enabled/wetty.conf"
+
+		echo "location /wetty {" > ${wfile}
+		echo "	proxy_pass http://127.0.0.1:3009/wetty;" >> ${wfile}
+		echo "	proxy_http_version 1.1;" >> ${wfile}
+		echo "	proxy_set_header Upgrade $http_upgrade;" >> ${wfile}
+		echo "	proxy_set_header Connection "upgrade";" >> ${wfile}
+		echo "" >> ${wfile}
+		echo "	proxy_set_header X-Real-IP $remote_addr;" >> ${wfile}
+		echo "	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;" >> ${wfile}
+		echo "	proxy_set_header Host $http_host;" >> ${wfile}
+		echo "	proxy_set_header X-NginX-Proxy true;" >> ${wfile}
+		echo "}" >> ${wfile}
 
 		cd /opt/
 
