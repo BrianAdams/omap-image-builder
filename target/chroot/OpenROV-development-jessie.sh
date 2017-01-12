@@ -251,7 +251,7 @@ install_node_pkgs () {
 		git_target_dir="/opt/openrov/cockpit"
 		if [ "$MYENV" = "production" ]
 		then
-			git_branch="v31.0.0"
+			git_branch="v31.0.0-RC1"
 		else
 	  		git_branch="master"
 		fi	
@@ -394,7 +394,7 @@ install_git_repos ()
 	git_repo="https://github.com/openrov/openrov-software-arduino"
 	if [ "$MYENV" = "production" ]
 	then
-		git_branch="v31.0.0"
+		git_branch="v31.0.0-release"
 	else
 		git_branch="master"
 	fi	
@@ -453,7 +453,7 @@ install_git_repos ()
 	git_target_dir="/opt/openrov/image-customization"
 	if [ "$MYENV" = "production" ]
 	then
-		git_branch="v31.0.0-bbb"
+		git_branch="v31.0.0-release"
 	else
 		git_branch="bbb-jessie"	
 	fi	
