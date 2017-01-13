@@ -220,7 +220,7 @@ install_node_pkgs () {
 		git_target_dir="/opt/openrov/system"
 		if [ "$MYENV" = "production" ]
 		then
-			git_branch="v1.0.0"
+			git_branch="v31.0.0-release"
 		else
 	  		git_branch="master"
 		fi		
