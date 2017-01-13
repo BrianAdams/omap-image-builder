@@ -408,11 +408,12 @@ install_git_repos ()
 	git_target_dir="/opt/source/dtb-${git_branch}"
 	git_clone_branch
 
-	if [ "$MYENV" = "production" ]
-	then
-		cd ${git_target_dir}/
-		git reset --hard 7a48c85b3d3aef794b3eecfe201f4db3ff416d15
-	fi	
+## The git check out is depth 1, which is probably why reset does not work
+#	if [ "$MYENV" = "production" ]
+#	then
+#		cd ${git_target_dir}/
+#		git reset --hard 7a48c85b3d3aef794b3eecfe201f4db3ff416d15
+#	fi	
 
 	# The beaglboard examples are now also adding 4.9-ti for dtd-rebuilder?
 
