@@ -251,7 +251,7 @@ install_node_pkgs () {
 		git_target_dir="/opt/openrov/cockpit"
 		if [ "$MYENV" = "production" ]
 		then
-			git_branch="v31.0.0-RC2"
+			git_branch="v31.0.0-RC3"
 		else
 	  		git_branch="master"
 		fi	
