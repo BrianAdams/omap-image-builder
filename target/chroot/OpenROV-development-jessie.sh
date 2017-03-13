@@ -139,9 +139,9 @@ install_custom_pkgs () {
 	install_dep_from_url
 
 	# Geomuxpp App
-	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/geomuxpp/geomuxpp_1.0.1_armhf.deb
-	dpkg -i geomuxpp_1.0.1_armhf.deb
-	rm geomuxpp_1.0.1_armhf.deb
+	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/gitlab/armhf/geomuxpp/geomuxpp_1.1.1_armhf.deb
+	dpkg -i geomuxpp_1.1.1_armhf.deb
+	rm geomuxpp_1.1.1_armhf.deb
 
 	# Arduino Core
 	wget http://openrov-software-nightlies.s3-us-west-2.amazonaws.com/jessie/arduino/openrov-arduino_1.0.0-1~21_armhf.deb && \
@@ -251,7 +251,7 @@ install_node_pkgs () {
 		git_target_dir="/opt/openrov/cockpit"
 		if [ "$MYENV" = "production" ]
 		then
-			git_branch="v31.0.0-RC2"
+			git_branch="v31.0.0-RC6"
 		else
 	  		git_branch="master"
 		fi	
